@@ -2688,6 +2688,7 @@ s,@target_vendor@,$target_vendor,;t t
 s,@target_os@,$target_os,;t t
 s,@BUILD_ANDROID_GCC@,$BUILD_ANDROID_GCC,;t t
 s,@GDB_TARGET@,$GDB_TARGET,;t t
+s,@LDFLAGS_FOR_TARGET@,$LDFLAGS_FOR_TARGET,;t t
 s,@TOPLEVEL_CONFIGURE_ARGUMENTS@,$TOPLEVEL_CONFIGURE_ARGUMENTS,;t t
 s,@baseargs@,$baseargs,;t t
 s,@gold_baseargs@,$gold_baseargs,;t t
