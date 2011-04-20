@@ -304,12 +304,13 @@ endif
 .PHONY: config-host-libbfd build-host-libbfd install-host-libbfd
 config-host-libbfd: stmp-config-host-libbfd
 LIBBFD_CONFIG_ARGS=--prefix=$(prefix) \
-	--enable-targets=all --host=${host} --build=${build} \
+	--enable-targets=all --host=${cur_host} --build=${cur_build} \
 	$(baseargs) --disable-shared --enable-install-libbfd
 stmp-config-host-libbfd: config.status
 	([ -d libbfd-${BINUTILS_VERSION} ] || \
 	  mkdir libbfd-${BINUTILS_VERSION}) && \
 	(cd libbfd-${BINUTILS_VERSION} ; \
+	 CC="" CXX="" \
 	 $(call find-package-srcdir, ${BINUTILS_VERSION})/configure \
 	  $(LIBBFD_CONFIG_ARGS)) && \
 	$(STAMP) $@
