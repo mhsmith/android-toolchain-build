@@ -45,6 +45,7 @@ case $target in
 esac
 AC_SUBST(BUILD_ANDROID_GCC)
 AC_SUBST(GDB_TARGET)
+AC_SUBST(LDFLAGS_FOR_TARGET)
 AC_ARG_PROGRAM
 
 # TOPLEVEL_CONFIGURE_ARGUMENTS lifted from top-level configure.ac in gcc.

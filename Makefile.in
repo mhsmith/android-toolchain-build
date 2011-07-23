@@ -138,7 +138,7 @@ export	CC_FOR_TARGET="$(TARGET_GCC_BUILDDIR)/gcc/xgcc \
 #
 CFLAGS_FOR_TARGET+= -O2 -Os -g
 CXXFLAGS_FOR_TARGET+=$(CFLAGS_FOR_TARGET)
-LDFLAGS_FOR_TARGET=
+LDFLAGS_FOR_TARGET=@LDFLAGS_FOR_TARGET@
 
 # Helper
 prefix-list = $(foreach e, $(2), $(join $1, $e))
@@ -336,10 +336,13 @@ LIBBFD_CONFIG_ARGS=--prefix=$(prefix) \
 	--target=${target_alias} --host=${host} --build=${build} \
 	$(baseargs) --disable-shared \
 	--enable-install-libbfd --with-included-gettext
+#	--enable-targets=all --host=${cur_host} --build=${cur_build} \
+#	$(baseargs) --disable-shared --enable-install-libbfd
 stmp-config-host-libbfd: config.status
 	([ -d libbfd-${BINUTILS_VERSION} ] || \
 	  mkdir libbfd-${BINUTILS_VERSION}) && \
 	(cd libbfd-${BINUTILS_VERSION} ; \
+	 CC="" CXX="" \
 	 $(call find-package-srcdir, ${BINUTILS_VERSION})/configure \
 	  $(LIBBFD_CONFIG_ARGS)) && \
 	$(STAMP) $@
