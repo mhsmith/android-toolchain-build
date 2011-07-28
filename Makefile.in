@@ -442,17 +442,13 @@ ifeq ($(target_cpu),arm)
 GCC_CONFIG_ARGS += --with-float=soft --with-fpu=vfp --with-arch=armv5te \
 	--enable-target-optspace
 
-# Experimental: build libsupc++.a for ARM.
-GCC_CONFIG_ARGS += --disable-hosted-libstdcxx \
-	--enable-cxx-flags="-fexceptions -frtti"
-
 ifneq ($(target_os),linux-androideabi)
 GCC_CONFIG_ARGS += --with-abi=aapcs
 endif
 
-else
-GCC_CONFIG_ARGS += --disable-libstdc__-v3
 endif
+
+GCC_CONFIG_ARGS += --enable-libstdc__-v3
 
 endif
 
