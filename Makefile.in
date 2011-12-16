@@ -68,6 +68,9 @@ GMP_VERSION=gmp-@GMP_VERSION@
 MPFR_VERSION=mpfr-@MPFR_VERSION@
 MPC_VERSION=mpc-@MPC_VERSION@
 GDB_VERSION=gdb-@GDB_VERSION@
+ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
+EXPAT_VERSION=expat-@EXPAT_VERSION@
+endif
 STAMP=touch
 
 TARGET_BINUTILS_BUILDDIR=$(abs_builddir)/$(BINUTILS_VERSION)
@@ -504,6 +507,31 @@ stmp-install-host-mpc: stmp-build-host-mpc
 	$(STAMP) $@
 install-host-mpc: stmp-install-host-mpc
 
+ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
+# host expat rules
+.PHONY: config-host-expat build-host-expat install-host-expat
+config-host-expat: stmp-config-host-expat
+EXPAT_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+	 --host=${cur_host} --build=${cur_build}
+stmp-config-host-expat: config.status $(canadian_stmp)
+	([ -d ${EXPAT_VERSION} ] || \
+	  mkdir ${EXPAT_VERSION}) && \
+	($(canadian_env) \
+	 cd ${EXPAT_VERSION} ; \
+	 $(call find-package-srcdir, ${EXPAT_VERSION})/configure \
+	  $(EXPAT_CONFIG_ARGS)) && \
+	$(STAMP) $@
+stmp-build-host-expat: config.status stmp-config-host-expat
+	($(canadian_env) \
+	 $(MAKE) -C ${EXPAT_VERSION}) && $(STAMP) $@
+build-host-expat: stmp-build-host-expat
+stmp-install-host-expat: stmp-build-host-expat
+	($(canadian_env) \
+	 $(MAKE) -C ${EXPAT_VERSION} install) && \
+	$(STAMP) $@
+install-host-expat: stmp-install-host-expat
+endif
+
 # target gdb rules
 .PHONY: config-target-gdb build-target-gdb install-target-gdb
 config-target-gdb: stmp-config-target-gdb
@@ -512,11 +540,23 @@ GDB_CONFIG_ARGS=$(baseargs) --prefix=$(prefix) \
 	--target=$(GDB_TARGET) --host=${cur_host} --build=${cur_build} \
 	--disable-nls
 
+ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
+stmp-config-target-gdb: stmp-install-host-expat
+GDB_CONFIG_ARGS += --with-expat
+GDB_CFLAGS=-I$(TEMP_INSTALLDIR)/include
+GDB_LDFLAGS=-L$(TEMP_INSTALLDIR)/lib
+else
+GDB_CFLAGS=
+GDB_LDFLAGS=
+endif
+
 stmp-config-target-gdb: config.status $(canadian_stmp)
 	([ -d ${GDB_VERSION} ] || \
 	  mkdir ${GDB_VERSION}) && \
 	($(canadian_env) \
 	 cd ${GDB_VERSION} ; \
+	 export CFLAGS="$(GDB_CFLAGS)"; \
+	 export LDFLAGS="$(GDB_LDFLAGS)"; \
 	 $(call find-package-srcdir, ${GDB_VERSION})/configure \
 	  $(GDB_CONFIG_ARGS)) && \
 	$(STAMP) $@

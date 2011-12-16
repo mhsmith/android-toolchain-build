@@ -378,6 +378,20 @@ AC_MSG_RESULT($GDB_VERSION)
 AC_SUBST(GDB_VERSION)
 ANDROID_CHECK_PACKAGE(gdb-${GDB_VERSION})
 
+if test "GCC_MIN_VERSION_4_6_0" == "yes"; then
+AC_MSG_CHECKING([expat version])
+AC_ARG_WITH([expat-version],
+  [  --with-expat-version=VERSION
+                            use expat-VERSION (default is 2.0.1)],
+  [if test x"$withval" != x ; then
+    EXPAT_VERSION="$withval"
+   fi],
+[EXPAT_VERSION="2.0.1"])
+AC_MSG_RESULT($EXPAT_VERSION)
+ANDROID_CHECK_PACKAGE(expat-${EXPAT_VERSION})
+AC_SUBST(EXPAT_VERSION)
+fi
+
 # Sysroot location
 AC_ARG_WITH([sysroot],
   [  --with-sysroot=DIR
