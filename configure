@@ -564,12 +564,15 @@ PACKAGE_URL=''
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 sysroot
+CLOOG_PPL_VERSION
+PPL_VERSION
 EXPAT_VERSION
 GDB_VERSION
 MPC_VERSION
 MPFR_VERSION
 GMP_VERSION
 NEWLIB_VERSION
+GCC_MIN_VERSION_4_6_0
 GCC_MIN_VERSION_4_5_0
 GCC_MIN_VERSION_4_3_0
 GCC_VERSION
@@ -644,6 +647,8 @@ with_mpfr_version
 with_mpc_version
 with_gdb_version
 with_expat_version
+with_ppl_version
+with_cloog_ppl_version
 with_sysroot
 '
       ac_precious_vars='build_alias
@@ -1287,6 +1292,10 @@ Optional Packages:
                           use gdb-VERSION (default is 6.6)
   --with-expat-version=VERSION
                             use expat-VERSION (default is 2.0.1)
+  --with-ppl-version=VERSION
+                            use ppl-VERSION (default is 0.11.2)
+  --with-cloog-ppl-version=VERSION
+                            use cloog-ppl-VERSION (default is 0.15.9)
   --with-sysroot=DIR
                           use target sysroot in DIR
 
@@ -2204,11 +2213,19 @@ if test -f "${gcc_version_file}"; then
   else
     GCC_MIN_VERSION_4_5_0="no"
   fi
+  if test "$GCC_MAJOR" -gt 4 -o \
+              \( "$GCC_MAJOR" -eq 4 -a "$GCC_MINOR" -ge 6 \) ; then
+    GCC_MIN_VERSION_4_6_0="yes"
+  else
+    GCC_MIN_VERSION_4_6_0="no"
+  fi
 else
   # No version file, assume it is trunk
   GCC_MIN_VERSION_4_3_0="yes"
   GCC_MIN_VERSION_4_5_0="yes"
+  GCC_MIN_VERSION_4_6_0="yes"
 fi
+
 
 
 
@@ -2418,7 +2435,7 @@ if test ! -d $srcdir/../$tool/gdb-${GDB_VERSION} ; then
   fi
 fi
 
-if test "GCC_MIN_VERSION_4_6_0" == "yes"; then
+if test "$GCC_MIN_VERSION_4_6_0" == "yes"; then
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking expat version" >&5
 $as_echo_n "checking expat version... " >&6; }
 
@@ -2457,6 +2474,85 @@ if test ! -d $srcdir/../$tool/expat-${EXPAT_VERSION} ; then
 fi
 
 fi
+
+if test "$GCC_MIN_VERSION_4_6_0" == "yes"; then
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking ppl version" >&5
+$as_echo_n "checking ppl version... " >&6; }
+
+# Check whether --with-ppl-version was given.
+if test "${with_ppl_version+set}" = set; then :
+  withval=$with_ppl_version; if test x"$withval" != x ; then
+     PPL_VERSION="$withval"
+   fi
+else
+  PPL_VERSION="0.16.3"
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PPL_VERSION" >&5
+$as_echo "$PPL_VERSION" >&6; }
+x=ppl-${PPL_VERSION}; tool=$(echo "$x" | sed -e 's/-.*//'); \
+if test ! -d $srcdir/../$tool/ppl-${PPL_VERSION} ; then
+  if test -f $srcdir/../$tool/ppl-${PPL_VERSION}.tar ; then
+    mkdir -p temp-src && tar -C temp-src -xf $srcdir/../$tool/ppl-${PPL_VERSION}.tar
+  elif test -f $srcdir/../$tool/ppl-${PPL_VERSION}.tar.gz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../$tool/ppl-${PPL_VERSION}.tar.gz
+  elif test -f $srcdir/../$tool/ppl-${PPL_VERSION}.tgz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../$tool/ppl-${PPL_VERSION}.tgz
+  elif test -f $srcdir/../$tool/ppl-${PPL_VERSION}.tar.bz2 ; then
+    mkdir -p temp-src && tar -C temp-src -xjf $srcdir/../$tool/ppl-${PPL_VERSION}.tar.bz2
+  elif test -f $srcdir/../tarballs/ppl-${PPL_VERSION}.tar ; then
+    mkdir -p temp-src && tar -C temp-src -xf $srcdir/../tarballs/ppl-${PPL_VERSION}.tar
+  elif test -f $srcdir/../tarballs/ppl-${PPL_VERSION}.tar.gz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../tarballs/ppl-${PPL_VERSION}.tar.gz
+  elif test -f $srcdir/../tarballs/ppl-${PPL_VERSION}.tgz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../tarballs/ppl-${PPL_VERSION}.tgz
+  elif test -f $srcdir/../tarballs/ppl-${PPL_VERSION}.tar.bz2 ; then
+    mkdir -p temp-src && tar -C temp-src -xjf $srcdir/../tarballs/ppl-${PPL_VERSION}.tar.bz2
+  else
+    as_fn_error $? "'package ppl-${PPL_VERSION} does not exist.'" "$LINENO" 5
+  fi
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking cloog-ppl version" >&5
+$as_echo_n "checking cloog-ppl version... " >&6; }
+
+# Check whether --with-cloog-ppl-version was given.
+if test "${with_cloog_ppl_version+set}" = set; then :
+  withval=$with_cloog_ppl_version; if test x"$withval" != x ; then
+     CLOOG_PPL_VERSION="$withval"
+   fi
+else
+  CLOOG_PPL_VERSION="0.15.9"
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $CLOOG_PPL_VERSION" >&5
+$as_echo "$CLOOG_PPL_VERSION" >&6; }
+x=cloog-ppl-${CLOOG_PPL_VERSION}; tool=$(echo "$x" | sed -e 's/-.*//'); \
+if test ! -d $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION} ; then
+  if test -f $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION}.tar ; then
+    mkdir -p temp-src && tar -C temp-src -xf $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION}.tar
+  elif test -f $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION}.tar.gz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION}.tar.gz
+  elif test -f $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION}.tgz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION}.tgz
+  elif test -f $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION}.tar.bz2 ; then
+    mkdir -p temp-src && tar -C temp-src -xjf $srcdir/../$tool/cloog-ppl-${CLOOG_PPL_VERSION}.tar.bz2
+  elif test -f $srcdir/../tarballs/cloog-ppl-${CLOOG_PPL_VERSION}.tar ; then
+    mkdir -p temp-src && tar -C temp-src -xf $srcdir/../tarballs/cloog-ppl-${CLOOG_PPL_VERSION}.tar
+  elif test -f $srcdir/../tarballs/cloog-ppl-${CLOOG_PPL_VERSION}.tar.gz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../tarballs/cloog-ppl-${CLOOG_PPL_VERSION}.tar.gz
+  elif test -f $srcdir/../tarballs/cloog-ppl-${CLOOG_PPL_VERSION}.tgz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../tarballs/cloog-ppl-${CLOOG_PPL_VERSION}.tgz
+  elif test -f $srcdir/../tarballs/cloog-ppl-${CLOOG_PPL_VERSION}.tar.bz2 ; then
+    mkdir -p temp-src && tar -C temp-src -xjf $srcdir/../tarballs/cloog-ppl-${CLOOG_PPL_VERSION}.tar.bz2
+  else
+    as_fn_error $? "'package cloog-ppl-${CLOOG_PPL_VERSION} does not exist.'" "$LINENO" 5
+  fi
+fi
+fi
+
+
+
 
 # Sysroot location
 

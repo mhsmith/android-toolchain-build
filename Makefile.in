@@ -51,6 +51,7 @@ TOPLEVEL_CONFIGURE_ARGUMENTS:=@TOPLEVEL_CONFIGURE_ARGUMENTS@
 baseargs = @baseargs@
 GCC_MIN_VERSION_4_3_0:=@GCC_MIN_VERSION_4_3_0@
 GCC_MIN_VERSION_4_5_0:=@GCC_MIN_VERSION_4_5_0@
+GCC_MIN_VERSION_4_6_0:=@GCC_MIN_VERSION_4_6_0@
 PACKAGE_TO_SRCDIR:=@package_to_srcdir@
 BUILD_ANDROID_GCC:=@BUILD_ANDROID_GCC@
 GDB_TARGET:=@GDB_TARGET@
@@ -70,6 +71,10 @@ MPC_VERSION=mpc-@MPC_VERSION@
 GDB_VERSION=gdb-@GDB_VERSION@
 ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
 EXPAT_VERSION=expat-@EXPAT_VERSION@
+endif
+ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
+PPL_VERSION=ppl-@PPL_VERSION@
+CLOOG_PPL_VERSION=cloog-ppl-@CLOOG_PPL_VERSION@
 endif
 STAMP=touch
 
@@ -237,6 +242,14 @@ config-target-binutils: stmp-config-target-binutils
 BINUTILS_CONFIG_ARGS=--prefix=$(prefix) \
 	--target=${cur_target} --host=${cur_host} --build=${cur_build} \
 	$(baseargs) --disable-shared
+
+# For gcc versions 4.6.0 and higher, enable Graphite
+ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
+stmp-config-target-binutils: stmp-install-host-gmp stmp-install-host-mpfr stmp-install-host-mpc stmp-install-host-cloog-ppl stmp-install-host-ppl
+BINUTILS_CONFIG_ARGS += --with-gmp=$(TEMP_INSTALLDIR) --with-mpfr=$(TEMP_INSTALLDIR) \
+	--with-mpc=$(TEMP_INSTALLDIR) --with-cloog=$(TEMP_INSTALLDIR) --with-ppl=$(TEMP_INSTALLDIR)
+endif
+
 stmp-config-target-binutils: config.status $(canadian_stmp)
 	([ -d ${BINUTILS_VERSION} ] || \
 	  mkdir ${BINUTILS_VERSION}) && \
@@ -307,6 +320,12 @@ endif
 ifeq ($(GCC_MIN_VERSION_4_5_0),yes)
 stmp-config-target-gcc: stmp-install-host-mpc
 GCC_CONFIG_ARGS += --with-mpc=$(TEMP_INSTALLDIR)
+endif
+
+# For gcc versions 4.6.0 and higher, enable Graphite
+ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
+stmp-config-target-gcc: stmp-install-host-cloog-ppl stmp-install-host-ppl
+GCC_CONFIG_ARGS += --with-cloog=$(TEMP_INSTALLDIR) --with-ppl=$(TEMP_INSTALLDIR)
 endif
 
 # Add Android specific gcc options.
@@ -439,7 +458,8 @@ install-target-newlib: stmp-build-target-newlib
 .PHONY: config-host-gmp build-host-gmp install-host-gmp
 config-host-gmp: stmp-config-host-gmp
 GMP_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
-	  --host=${cur_host} --build=${cur_build}
+	  --host=${cur_host} --build=${cur_build} \
+	  --enable-cxx
 stmp-config-host-gmp: config.status $(canadian_stmp)
 	([ -d ${GMP_VERSION} ] || \
 	  mkdir ${GMP_VERSION}) && \
@@ -532,13 +552,65 @@ stmp-install-host-expat: stmp-build-host-expat
 install-host-expat: stmp-install-host-expat
 endif
 
+ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
+# host ppl rules
+.PHONY: config-host-ppl build-host-ppl install-host-ppl
+config-host-ppl: stmp-config-host-ppl
+PPL_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+	 --host=${cur_host} --build=${cur_build}
+stmp-config-host-ppl: config.status stmp-install-host-gmp
+	([ -d ${PPL_VERSION} ] || \
+	  mkdir ${PPL_VERSION}) && \
+	($(canadian_env) \
+	 cd ${PPL_VERSION} ; \
+	 $(call find-package-srcdir, ${PPL_VERSION})/configure \
+	  $(PPL_CONFIG_ARGS)) && \
+	$(STAMP) $@
+stmp-build-host-ppl: stmp-config-host-ppl
+	($(canadian_env) \
+	 $(MAKE) -C ${PPL_VERSION}) && $(STAMP) $@
+build-host-ppl: stmp-build-host-ppl
+stmp-install-host-ppl: stmp-build-host-ppl
+	($(canadian_env) \
+	 $(MAKE) -C ${PPL_VERSION} install) && \
+	$(STAMP) $@
+install-host-ppl: stmp-install-host-ppl
+
+# host cloog-ppl rules
+.PHONY: config-host-cloog-ppl build-host-cloog-ppl install-host-cloog-ppl
+config-host-cloog-ppl: stmp-config-host-cloog-ppl
+CLOOG_PPL_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+	 --host=${cur_host} --build=${cur_build} \
+	 --with-ppl=$(TEMP_INSTALLDIR) --with-gmp=$(TEMP_INSTALLDIR)
+stmp-config-host-cloog-ppl: config.status stmp-install-host-gmp stmp-install-host-ppl
+	([ -d ${CLOOG_PPL_VERSION} ] || \
+	  mkdir ${CLOOG_PPL_VERSION}) && \
+	($(canadian_env) \
+	 cd ${CLOOG_PPL_VERSION} ; \
+	 $(TARGET_BINUTILS_EXPORTS); \
+	 $(TARGET_MINIMAL_GCC_EXPORTS); \
+	 $(call find-package-srcdir, ${CLOOG_PPL_VERSION})/configure \
+	  $(CLOOG_PPL_CONFIG_ARGS) \
+	  --with-host-libstdcxx="-lstdc++ -lm") && \
+	$(STAMP) $@
+stmp-build-host-cloog-ppl: config.status stmp-config-host-cloog-ppl
+	($(canadian_env) \
+	 $(MAKE) -C ${CLOOG_PPL_VERSION}) && $(STAMP) $@
+build-host-cloog-ppl: stmp-build-host-cloog-ppl
+stmp-install-host-cloog-ppl: stmp-build-host-cloog-ppl
+	($(canadian_env) \
+	 $(MAKE) -C ${CLOOG_PPL_VERSION} install) && \
+	$(STAMP) $@
+install-host-cloog-ppl: stmp-install-host-cloog-ppl
+endif
+
 # target gdb rules
 .PHONY: config-target-gdb build-target-gdb install-target-gdb
 config-target-gdb: stmp-config-target-gdb
 
 GDB_CONFIG_ARGS=$(baseargs) --prefix=$(prefix) \
 	--target=$(GDB_TARGET) --host=${cur_host} --build=${cur_build} \
-	--disable-nls
+	--disable-nls --disable-werror
 
 ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
 stmp-config-target-gdb: stmp-install-host-expat

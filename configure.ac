@@ -294,13 +294,21 @@ if test -f "${gcc_version_file}"; then
   else
     GCC_MIN_VERSION_4_5_0="no"
   fi
+  if test "$GCC_MAJOR" -gt 4 -o \
+              \( "$GCC_MAJOR" -eq 4 -a "$GCC_MINOR" -ge 6 \) ; then
+    GCC_MIN_VERSION_4_6_0="yes"
+  else
+    GCC_MIN_VERSION_4_6_0="no"
+  fi
 else
   # No version file, assume it is trunk
   GCC_MIN_VERSION_4_3_0="yes"
   GCC_MIN_VERSION_4_5_0="yes"
+  GCC_MIN_VERSION_4_6_0="yes"
 fi
 AC_SUBST(GCC_MIN_VERSION_4_3_0)
 AC_SUBST(GCC_MIN_VERSION_4_5_0)
+AC_SUBST(GCC_MIN_VERSION_4_6_0)
 
 # newlib version (default is 1.16.0)
 # newlib is only used for arm-newlib-eabi for testing
@@ -378,7 +386,7 @@ AC_MSG_RESULT($GDB_VERSION)
 AC_SUBST(GDB_VERSION)
 ANDROID_CHECK_PACKAGE(gdb-${GDB_VERSION})
 
-if test "GCC_MIN_VERSION_4_6_0" == "yes"; then
+if test "$GCC_MIN_VERSION_4_6_0" == "yes"; then
 AC_MSG_CHECKING([expat version])
 AC_ARG_WITH([expat-version],
   [  --with-expat-version=VERSION
@@ -391,6 +399,33 @@ AC_MSG_RESULT($EXPAT_VERSION)
 ANDROID_CHECK_PACKAGE(expat-${EXPAT_VERSION})
 AC_SUBST(EXPAT_VERSION)
 fi
+
+if test "$GCC_MIN_VERSION_4_6_0" == "yes"; then
+AC_MSG_CHECKING([ppl version])
+AC_ARG_WITH([ppl-version],
+  [  --with-ppl-version=VERSION
+                            use ppl-VERSION (default is 0.11.2)],
+  [if test x"$withval" != x ; then
+     PPL_VERSION="$withval"
+   fi],
+[PPL_VERSION="0.16.3"])
+AC_MSG_RESULT($PPL_VERSION)
+ANDROID_CHECK_PACKAGE(ppl-${PPL_VERSION})
+
+AC_MSG_CHECKING([cloog-ppl version])
+AC_ARG_WITH([cloog-ppl-version],
+  [  --with-cloog-ppl-version=VERSION
+                            use cloog-ppl-VERSION (default is 0.15.9)],
+  [if test x"$withval" != x ; then
+     CLOOG_PPL_VERSION="$withval"
+   fi],
+[CLOOG_PPL_VERSION="0.15.9"])
+AC_MSG_RESULT($CLOOG_PPL_VERSION)
+ANDROID_CHECK_PACKAGE(cloog-ppl-${CLOOG_PPL_VERSION})
+fi
+
+AC_SUBST(PPL_VERSION)
+AC_SUBST(CLOOG_PPL_VERSION)
 
 # Sysroot location
 AC_ARG_WITH([sysroot],
