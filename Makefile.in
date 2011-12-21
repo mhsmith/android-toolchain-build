@@ -615,11 +615,11 @@ GDB_CONFIG_ARGS=$(baseargs) --prefix=$(prefix) \
 ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
 stmp-config-target-gdb: stmp-install-host-expat
 GDB_CONFIG_ARGS += --with-expat
-GDB_CFLAGS=-I$(TEMP_INSTALLDIR)/include
-GDB_LDFLAGS=-L$(TEMP_INSTALLDIR)/lib
+GDB_CFLAGS=$(CFLAGS) -I$(TEMP_INSTALLDIR)/include
+GDB_LDFLAGS=$(LDFLAGS) -L$(TEMP_INSTALLDIR)/lib
 else
-GDB_CFLAGS=
-GDB_LDFLAGS=
+GDB_CFLAGS=$(CFLAGS)
+GDB_LDFLAGS=$(LDFLAGS)
 endif
 
 stmp-config-target-gdb: config.status $(canadian_stmp)
