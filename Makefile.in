@@ -243,11 +243,13 @@ BINUTILS_CONFIG_ARGS=--prefix=$(prefix) \
 	--target=${cur_target} --host=${cur_host} --build=${cur_build} \
 	$(baseargs) --disable-shared
 
-# For gcc versions 4.6.0 and higher, enable Graphite
 ifeq ($(GCC_MIN_VERSION_4_6_0),yes)
 stmp-config-target-binutils: stmp-install-host-gmp stmp-install-host-mpfr stmp-install-host-mpc stmp-install-host-cloog-ppl stmp-install-host-ppl
+# Enable Graphite
 BINUTILS_CONFIG_ARGS += --with-gmp=$(TEMP_INSTALLDIR) --with-mpfr=$(TEMP_INSTALLDIR) \
 	--with-mpc=$(TEMP_INSTALLDIR) --with-cloog=$(TEMP_INSTALLDIR) --with-ppl=$(TEMP_INSTALLDIR)
+# Enable Gold
+BINUTILS_CONFIG_ARGS += --enable-ld=default --enable-gold=yes
 endif
 
 stmp-config-target-binutils: config.status $(canadian_stmp)
