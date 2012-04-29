@@ -300,15 +300,23 @@ if test -f "${gcc_version_file}"; then
   else
     GCC_MIN_VERSION_4_6_0="no"
   fi
+  if test "$GCC_MAJOR" -gt 4 -o \
+              \( "$GCC_MAJOR" -eq 4 -a "$GCC_MINOR" -ge 7 \) ; then
+    GCC_MIN_VERSION_4_7_0="yes"
+  else
+    GCC_MIN_VERSION_4_7_0="no"
+  fi
 else
   # No version file, assume it is trunk
   GCC_MIN_VERSION_4_3_0="yes"
   GCC_MIN_VERSION_4_5_0="yes"
   GCC_MIN_VERSION_4_6_0="yes"
+  GCC_MIN_VERSION_4_7_0="yes"
 fi
 AC_SUBST(GCC_MIN_VERSION_4_3_0)
 AC_SUBST(GCC_MIN_VERSION_4_5_0)
 AC_SUBST(GCC_MIN_VERSION_4_6_0)
+AC_SUBST(GCC_MIN_VERSION_4_7_0)
 
 # newlib version (default is 1.16.0)
 # newlib is only used for arm-newlib-eabi for testing

@@ -52,6 +52,7 @@ baseargs = @baseargs@
 GCC_MIN_VERSION_4_3_0:=@GCC_MIN_VERSION_4_3_0@
 GCC_MIN_VERSION_4_5_0:=@GCC_MIN_VERSION_4_5_0@
 GCC_MIN_VERSION_4_6_0:=@GCC_MIN_VERSION_4_6_0@
+GCC_MIN_VERSION_4_7_0:=@GCC_MIN_VERSION_4_7_0@
 PACKAGE_TO_SRCDIR:=@package_to_srcdir@
 BUILD_ANDROID_GCC:=@BUILD_ANDROID_GCC@
 GDB_TARGET:=@GDB_TARGET@
@@ -342,6 +343,9 @@ GCC_CONFIG_ARGS += $(GCC_CONFIG_LIBSTDCXX_V3) --disable-libssp \
 	--enable-threads --disable-nls --disable-libmudflap --disable-libgomp \
 	--disable-libstdc__-v3 --disable-sjlj-exceptions --enable-shared \
 	--disable-tls
+ifeq ($(GCC_MIN_VERSION_4_7_0),yes)
+GCC_CONFIG_ARGS += --disable-libitm
+endif
 CFLAGS_FOR_TARGET += -DTARGET_POSIX_IO -fno-short-enums
 
 ifeq ($(target_cpu),x86)
