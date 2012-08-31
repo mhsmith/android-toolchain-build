@@ -572,11 +572,11 @@ MPC_VERSION
 MPFR_VERSION
 GMP_VERSION
 NEWLIB_VERSION
+GCC_VERSION
 GCC_MIN_VERSION_4_7_0
 GCC_MIN_VERSION_4_6_0
 GCC_MIN_VERSION_4_5_0
 GCC_MIN_VERSION_4_3_0
-GCC_VERSION
 GOLD_VERSION
 BINUTILS_VERSION
 package_to_srcdir
@@ -2173,29 +2173,6 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $GCC_VERSION" >&5
 $as_echo "$GCC_VERSION" >&6; }
 
-x=gcc-${GCC_VERSION}; tool=$(echo "$x" | sed -e 's/-.*//'); \
-if test ! -d $srcdir/../$tool/gcc-${GCC_VERSION} ; then
-  if test -f $srcdir/../$tool/gcc-${GCC_VERSION}.tar ; then
-    mkdir -p temp-src && tar -C temp-src -xf $srcdir/../$tool/gcc-${GCC_VERSION}.tar
-  elif test -f $srcdir/../$tool/gcc-${GCC_VERSION}.tar.gz ; then
-    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../$tool/gcc-${GCC_VERSION}.tar.gz
-  elif test -f $srcdir/../$tool/gcc-${GCC_VERSION}.tgz ; then
-    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../$tool/gcc-${GCC_VERSION}.tgz
-  elif test -f $srcdir/../$tool/gcc-${GCC_VERSION}.tar.bz2 ; then
-    mkdir -p temp-src && tar -C temp-src -xjf $srcdir/../$tool/gcc-${GCC_VERSION}.tar.bz2
-  elif test -f $srcdir/../tarballs/gcc-${GCC_VERSION}.tar ; then
-    mkdir -p temp-src && tar -C temp-src -xf $srcdir/../tarballs/gcc-${GCC_VERSION}.tar
-  elif test -f $srcdir/../tarballs/gcc-${GCC_VERSION}.tar.gz ; then
-    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../tarballs/gcc-${GCC_VERSION}.tar.gz
-  elif test -f $srcdir/../tarballs/gcc-${GCC_VERSION}.tgz ; then
-    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../tarballs/gcc-${GCC_VERSION}.tgz
-  elif test -f $srcdir/../tarballs/gcc-${GCC_VERSION}.tar.bz2 ; then
-    mkdir -p temp-src && tar -C temp-src -xjf $srcdir/../tarballs/gcc-${GCC_VERSION}.tar.bz2
-  else
-    as_fn_error $? "'package gcc-${GCC_VERSION} does not exist.'" "$LINENO" 5
-  fi
-fi
-
 # figure out if we need to build gmp and mpfr for gcc 4.3.0+
 gcc_version_file="${srcdir}/../gcc/gcc-${GCC_VERSION}/gcc/BASE-VER"
 if test -f "${gcc_version_file}"; then
@@ -2237,6 +2214,33 @@ fi
 
 
 
+
+if test "x$GCC_MIN_VERSION_4_6_0" = "xyes"; then
+  GCC_VERSION=$(echo ${GCC_VERSION} | sed -e 's/\.[0-9]\+$/.x/')
+fi
+
+x=gcc-${GCC_VERSION}; tool=$(echo "$x" | sed -e 's/-.*//'); \
+if test ! -d $srcdir/../$tool/gcc-${GCC_VERSION} ; then
+  if test -f $srcdir/../$tool/gcc-${GCC_VERSION}.tar ; then
+    mkdir -p temp-src && tar -C temp-src -xf $srcdir/../$tool/gcc-${GCC_VERSION}.tar
+  elif test -f $srcdir/../$tool/gcc-${GCC_VERSION}.tar.gz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../$tool/gcc-${GCC_VERSION}.tar.gz
+  elif test -f $srcdir/../$tool/gcc-${GCC_VERSION}.tgz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../$tool/gcc-${GCC_VERSION}.tgz
+  elif test -f $srcdir/../$tool/gcc-${GCC_VERSION}.tar.bz2 ; then
+    mkdir -p temp-src && tar -C temp-src -xjf $srcdir/../$tool/gcc-${GCC_VERSION}.tar.bz2
+  elif test -f $srcdir/../tarballs/gcc-${GCC_VERSION}.tar ; then
+    mkdir -p temp-src && tar -C temp-src -xf $srcdir/../tarballs/gcc-${GCC_VERSION}.tar
+  elif test -f $srcdir/../tarballs/gcc-${GCC_VERSION}.tar.gz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../tarballs/gcc-${GCC_VERSION}.tar.gz
+  elif test -f $srcdir/../tarballs/gcc-${GCC_VERSION}.tgz ; then
+    mkdir -p temp-src && tar -C temp-src -xzf $srcdir/../tarballs/gcc-${GCC_VERSION}.tgz
+  elif test -f $srcdir/../tarballs/gcc-${GCC_VERSION}.tar.bz2 ; then
+    mkdir -p temp-src && tar -C temp-src -xjf $srcdir/../tarballs/gcc-${GCC_VERSION}.tar.bz2
+  else
+    as_fn_error $? "'package gcc-${GCC_VERSION} does not exist.'" "$LINENO" 5
+  fi
+fi
 
 # newlib version (default is 1.16.0)
 # newlib is only used for arm-newlib-eabi for testing

@@ -273,8 +273,6 @@ AC_ARG_WITH([gcc-version],
    fi],
 [GCC_VERSION="4.2.1"])
 AC_MSG_RESULT($GCC_VERSION)
-AC_SUBST(GCC_VERSION)
-ANDROID_CHECK_PACKAGE(gcc-${GCC_VERSION})
 
 # figure out if we need to build gmp and mpfr for gcc 4.3.0+ 
 gcc_version_file="${srcdir}/../gcc/gcc-${GCC_VERSION}/gcc/BASE-VER"
@@ -317,6 +315,12 @@ AC_SUBST(GCC_MIN_VERSION_4_3_0)
 AC_SUBST(GCC_MIN_VERSION_4_5_0)
 AC_SUBST(GCC_MIN_VERSION_4_6_0)
 AC_SUBST(GCC_MIN_VERSION_4_7_0)
+
+if test "x$GCC_MIN_VERSION_4_6_0" = "xyes"; then
+  GCC_VERSION=$(echo ${GCC_VERSION} | sed -e 's/\.[[0-9]]\+$/.x/')
+fi
+AC_SUBST(GCC_VERSION)
+ANDROID_CHECK_PACKAGE(gcc-${GCC_VERSION})
 
 # newlib version (default is 1.16.0)
 # newlib is only used for arm-newlib-eabi for testing
