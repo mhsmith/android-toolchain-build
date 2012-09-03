@@ -258,6 +258,8 @@ gcc_install_target := install-gcc
 install-target-gcc-multilibs: stmp-install-canadian-tools
 	mkdir -p $(prefix)/lib/gcc/
 	rsync -a $(CANADIAN_ROOT)/install/lib/gcc/ $(prefix)/lib/gcc/
+	mkdir -p $(prefix)/$(target_abi)/lib/
+	rsync -a $(CANADIAN_ROOT)/install/$(target_alias)/lib/ $(prefix)/$(target_alias)/lib/
 install-target-gcc-multilibs := install-target-gcc-multilibs
 
 # We add canadian_stmp dependency to rules that have no dependencies
@@ -401,7 +403,7 @@ config-target-gcc: stmp-config-target-gcc
 
 GCC_CONFIG_ARGS=--prefix=$(prefix) \
 	  --target=${cur_target} --host=${cur_host} --build=${cur_build} \
-	  --with-gnu-as --with-gnu-ld --enable-languages=c,c++
+	  --with-gnu-as --with-gnu-ld --enable-languages=c,c++,objc,obj-c++
 
 # For gcc versions 4.3.0 and later, gmp and mpfr are required.
 # Also build libgcc is a seperate sub-target in 4.3.0+.
@@ -441,6 +443,7 @@ GCC_CONFIG_ARGS += $(GCC_CONFIG_LIBSTDCXX_V3) --disable-libssp \
 	--disable-tls --disable-libitm
 
 CFLAGS_FOR_TARGET += -DTARGET_POSIX_IO -fno-short-enums
+
 # ARM specific options.
 ifeq ($(target_cpu),arm)
 GCC_CONFIG_ARGS += --with-float=soft --with-fpu=vfp --with-arch=armv5te \
@@ -716,7 +719,7 @@ config-target-gdb: stmp-config-target-gdb
 
 GDB_CONFIG_ARGS=$(baseargs) --prefix=$(prefix) \
 	--target=$(GDB_TARGET) --host=${cur_host} --build=${cur_build} \
-	--disable-nls
+	--disable-nls --disable-werror
 
 # For gdb versions 7.2 and higher, expat is required.
 ifeq ($(GDB_MIN_VERSION_7_2),yes)
