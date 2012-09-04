@@ -286,12 +286,13 @@ BINUTILS_CONFIG_ARGS=--prefix=$(prefix) \
 	--target=${cur_target} --host=${cur_host} --build=${cur_build} \
 	$(baseargs) --disable-shared
 ifeq ($(ENABLE_GRAPHITE),yes)
-BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-gmp=${GMP_DIR} \
+BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} --with-gmp=${GMP_DIR} \
 	--disable-ppl-version-check --disable-cloog-version-check
 # links to the static C++ runtime to avoid depending on the host version
 BINUTILS_CONFIG_ARGS+= \
-	'--with-host-libstdcxx=-static-libgcc \
-	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm'
+	'--with-host-libstdcxx="-static-libgcc \
+	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm"'
+stmp-config-target-binutils: install-host-cloog
 endif
 # Enable dual linker support and make gold as default linker when gold is
 # enabled. Notice that our binutils take different --enable-gold=xxx options.
@@ -424,8 +425,9 @@ GCC_CONFIG_ARGS += --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} \
 	--disable-ppl-version-check --disable-cloog-version-check
 # links to the static C++ runtime to avoid depending on the host version
 GCC_CONFIG_ARGS += \
-	'--with-host-libstdcxx=-static-libgcc \
-	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm'
+	'--with-host-libstdcxx="-static-libgcc \
+	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm"'
+stmp-config-target-gcc: install-host-cloog
 else
 # Disable ppl and cloog just in case the host have them install.
 GCC_CONFIG_ARGS += --without-ppl --without-cloog
@@ -440,7 +442,7 @@ ifeq ($(BUILD_ANDROID_GCC),yes)
 GCC_CONFIG_ARGS += $(GCC_CONFIG_LIBSTDCXX_V3) --disable-libssp \
 	--enable-threads --disable-nls --disable-libmudflap --disable-libgomp \
 	--disable-libstdc__-v3 --disable-sjlj-exceptions --disable-shared \
-	--disable-tls --disable-libitm
+	--disable-tls --disable-libitm --disable-libobjc
 
 CFLAGS_FOR_TARGET += -DTARGET_POSIX_IO -fno-short-enums
 
@@ -557,10 +559,14 @@ stmp-config-host-gmp: config.status $(canadian_stmp)
 stmp-build-host-gmp: stmp-config-host-gmp
 	($(canadian_env) \
 	 $(MAKE) -C ${GMP_VERSION}) && $(STAMP) $@
-build-host-gmp: stmp-build-host-gmp
+# This is needed to workaround libtool bug when it generate wrong dependencies in libgmpxx.lai
+stmp-build-host-gmp-workaround: stmp-build-host-gmp
+	sed -i -e "/dependency_libs/ s/'.*'/''/" `find ${GMP_VERSION} -name '*.lai'`
+	$(STAMP) $@
+build-host-gmp: stmp-build-host-gmp stmp-build-host-gmp-workaround
 # Need -j1 to avoid a race condition in building on OS X.
 ifeq ($(HAVE_GMP),no)
-stmp-install-host-gmp: stmp-build-host-gmp
+stmp-install-host-gmp: stmp-build-host-gmp stmp-build-host-gmp-workaround
 	$(MAKE) -C ${GMP_VERSION} install -j1 && $(STAMP) $@
 else
 stmp-install-host-gmp:
@@ -626,7 +632,7 @@ PPL_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
 	  --target=${target_alias} \
 	  --host=${host} --build=${build} \
 	  --disable-nls --with-gmp-prefix=$(GMP_DIR) \
-	  --disable-watchdog \
+	  --enable-watchdog \
 	  --disable-ppl_lcdd --disable-ppl_lpsol --disable-ppl_pips
 stmp-config-host-ppl: config.status stmp-install-host-gmp
 	([ -d ${PPL_VERSION} ] || \
@@ -638,8 +644,11 @@ stmp-config-host-ppl: config.status stmp-install-host-gmp
 	$(STAMP) $@
 stmp-build-host-ppl: stmp-config-host-ppl
 	$(MAKE) -C ${PPL_VERSION} && $(STAMP) $@
+# This is needed to workaround libtool bug when it generate wrong dependencies in libppl.lai
+stmp-build-host-ppl-workaround: stmp-build-host-ppl
+	sed -i -e "/dependency_libs/ s/'.*'/''/" `find ${PPL_VERSION} -name '*.lai'` && $(STAMP) $@
 build-host-ppl: stmp-build-host-ppl
-stmp-install-host-ppl: stmp-build-host-ppl
+stmp-install-host-ppl: stmp-build-host-ppl stmp-build-host-ppl-workaround
 	$(MAKE) -C ${PPL_VERSION} install && \
 	$(STAMP) $@
 install-host-ppl: stmp-install-host-ppl
@@ -654,14 +663,7 @@ CLOOG_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
 	  --with-gmp=$(GMP_DIR)
 # for cloog-ppl version 0.15.x, ppl is required.
 ifneq ($(findstring ppl-,$(CLOOG_VERSION)),)
-stmp-config-host-cloog: config.status stmp-install-host-ppl \
-	  stmp-install-host-ppl-workaround
-stmp-install-host-ppl-workaround:
-	# cloog 0.15.9 is unable to detect newer versions of ppl.
-	# Thus we modify the version definition in header file to satisfy.
-	sed -i -e 's/PPL_VERSION_MINOR 11/PPL_VERSION_MINOR 10/' \
-	  $(PPL_DIR)/include/ppl_c.h
-	$(STAMP) $@
+stmp-config-host-cloog: config.status stmp-install-host-ppl
 CLOOG_CONFIG_ARGS+= --with-ppl=$(PPL_DIR)
 endif
 stmp-config-host-cloog: config.status stmp-install-host-gmp

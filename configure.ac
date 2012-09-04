@@ -221,17 +221,21 @@ done
 
 AC_SUBST(gold_baseargs)
 
+AC_MSG_CHECKING([graphite enabled])
 ENABLE_GRAPHITE=no
 AC_ARG_ENABLE([graphite],
               AC_HELP_STRING([--enable-graphite],
                              [Enable Graphite optimization @<:@default=no@:>@]))
-if test x${enableval} != xyes; then
+if test x${enableval} = xyes; then
+  graphite=yes
+else
   graphite=no
 fi
 if test "$GCC_MIN_VERSION_4_5_0" == "no"; then
   graphite=no
 fi
 ENABLE_GRAPHITE=$graphite
+AC_MSG_RESULT($ENABLE_GRAPHITE)
 AC_SUBST(ENABLE_GRAPHITE)
 
 # package to source path
