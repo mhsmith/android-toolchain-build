@@ -290,8 +290,7 @@ BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} --with-gm
 	--disable-ppl-version-check --disable-cloog-version-check
 # links to the static C++ runtime to avoid depending on the host version
 BINUTILS_CONFIG_ARGS+= \
-	'--with-host-libstdcxx="-static-libgcc \
-	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm"'
+	--with-host-libstdcxx="-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm"
 stmp-config-target-binutils: install-host-cloog
 endif
 # Enable dual linker support and make gold as default linker when gold is
@@ -425,8 +424,7 @@ GCC_CONFIG_ARGS += --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} \
 	--disable-ppl-version-check --disable-cloog-version-check
 # links to the static C++ runtime to avoid depending on the host version
 GCC_CONFIG_ARGS += \
-	'--with-host-libstdcxx="-static-libgcc \
-	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm"'
+	--with-host-libstdcxx="-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm"
 stmp-config-target-gcc: install-host-cloog
 else
 # Disable ppl and cloog just in case the host have them install.
