@@ -237,7 +237,8 @@ stmp-config-canadian-tools:
 	($(canadian_build_env) \
 	 cd $(CANADIAN_ROOT) && \
 	 $(call log-step,$@) && \
-	 $(abs_srcdir)/configure $(baseargs) --build=$(cur_build) \
+	 $(abs_srcdir)/configure $(baseargs) \
+		--prefix=$(CANADIAN_ROOT)/install --build=$(cur_build) \
 		--host=$(cur_build) --target=$(cur_target)) && \
 	$(STAMP) $@
 
@@ -245,16 +246,14 @@ build-canadian-tools: stmp-build-canadian-tools
 stmp-build-canadian-tools: stmp-config-canadian-tools
 	($(canadian_build_env) \
 	 $(call log-step,$@) && \
-	 cd $(CANADIAN_ROOT) && \
-	 $(MAKE)) && \
+	 $(MAKE) -C $(CANADIAN_ROOT)) && \
 	$(STAMP) $@
 
 install-canadian-tools: stmp-install-canadian-tools
 stmp-install-canadian-tools: stmp-build-canadian-tools
 	($(canadian_build_env) \
 	 $(call log-step,$@) && \
-	 cd $(CANADIAN_ROOT) && \
-	 $(MAKE) install prefix=$(CANADIAN_ROOT)/install) && \
+	 $(MAKE) -C $(CANADIAN_ROOT) install) && \
 	$(STAMP) $@
 
 # When building canadian cross toolchain we cannot build GCC target libraries.
