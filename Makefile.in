@@ -3,6 +3,10 @@
 # -------------------------------
 VPATH=@srcdir@
 
+define log-step
+printf "NEXT-STEP: %-40s %s\n" $(1) `pwd`
+endef
+
 build_alias=@build_alias@
 build_vendor=@build_vendor@
 build_os=@build_os@
@@ -232,6 +236,7 @@ stmp-config-canadian-tools:
 	  mkdir $(CANADIAN_ROOT)) && \
 	($(canadian_build_env) \
 	 cd $(CANADIAN_ROOT) && \
+	 $(call log-step,$@) && \
 	 $(abs_srcdir)/configure $(baseargs) --build=$(cur_build) \
 		--host=$(cur_build) --target=$(cur_target)) && \
 	$(STAMP) $@
@@ -239,6 +244,7 @@ stmp-config-canadian-tools:
 build-canadian-tools: stmp-build-canadian-tools
 stmp-build-canadian-tools: stmp-config-canadian-tools
 	($(canadian_build_env) \
+	 $(call log-step,$@) && \
 	 cd $(CANADIAN_ROOT) && \
 	 $(MAKE)) && \
 	$(STAMP) $@
@@ -246,6 +252,7 @@ stmp-build-canadian-tools: stmp-config-canadian-tools
 install-canadian-tools: stmp-install-canadian-tools
 stmp-install-canadian-tools: stmp-build-canadian-tools
 	($(canadian_build_env) \
+	 $(call log-step,$@) && \
 	 cd $(CANADIAN_ROOT) && \
 	 $(MAKE) install prefix=$(CANADIAN_ROOT)/install) && \
 	$(STAMP) $@
@@ -256,6 +263,7 @@ stmp-install-canadian-tools: stmp-build-canadian-tools
 gcc_build_target := all-gcc
 gcc_install_target := install-gcc
 install-target-gcc-multilibs: stmp-install-canadian-tools
+	$(call log-step,$@)
 	mkdir -p $(prefix)/lib/gcc/
 	rsync -a $(CANADIAN_ROOT)/install/lib/gcc/ $(prefix)/lib/gcc/
 	mkdir -p $(prefix)/$(target_abi)/lib/
@@ -313,15 +321,18 @@ stmp-config-target-binutils: config.status $(canadian_stmp)
 	  mkdir ${BINUTILS_VERSION}) && \
 	($(canadian_env) \
 	 cd ${BINUTILS_VERSION} ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${BINUTILS_VERSION})/configure \
 	  $(BINUTILS_CONFIG_ARGS)) && \
 	$(STAMP) $@
 build-target-binutils: stmp-build-target-binutils
 stmp-build-target-binutils: stmp-config-target-binutils
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${BINUTILS_VERSION}) && $(STAMP) $@
 install-target-binutils: stmp-build-target-binutils
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${BINUTILS_VERSION} install)
 
 # target gold rules.  We need these only if BINUTILS_VERSION != GOLD_VERSION
@@ -341,12 +352,14 @@ stmp-config-target-gold: config.status
 	([ -d ${GOLD_VERSION} ] || \
 	  mkdir ${GOLD_VERSION}) && \
 	(cd ${GOLD_VERSION} ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${GOLD_VERSION})/configure \
 	  $(GOLD_CONFIG_ARGS)) && \
 	$(STAMP) $@
 build-target-gold: stmp-build-target-gold
 stmp-build-target-gold: stmp-config-target-gold
 	($(canadian_env) \
+     $(call log-step,$@) && \
      $(MAKE) -C ${GOLD_VERSION} && $(STAMP) $@)
 
 # If we use a different binutils version of gold, we build gold twice.  We
@@ -376,11 +389,13 @@ stmp-config-host-libbfd: config.status
 	([ -d libbfd-${BINUTILS_VERSION} ] || \
 	  mkdir libbfd-${BINUTILS_VERSION}) && \
 	(cd libbfd-${BINUTILS_VERSION} ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${BINUTILS_VERSION})/configure \
 	  $(LIBBFD_CONFIG_ARGS)) && \
 	$(STAMP) $@
 build-host-libbfd: stmp-build-host-libbfd
 stmp-build-host-libbfd: stmp-config-host-libbfd
+	$(call log-step,$@) && \
 	$(MAKE) -C libbfd-${BINUTILS_VERSION} all-bfd all-libiberty && \
 	$(MAKE) -C libbfd-${BINUTILS_VERSION}/intl libintl.a && \
 	$(STAMP) $@
@@ -389,6 +404,7 @@ stmp-build-host-libbfd: stmp-config-host-libbfd
 # We build with -m32 always, and install host libs into /lib32.
 LIB32DIR=$(libdir)32
 install-host-libbfd: stmp-build-host-libbfd install-target-binutils
+	$(call log-step,$@) && \
 	$(MAKE) -C libbfd-${BINUTILS_VERSION}/bfd install \
 		bfdlibdir=$(LIB32DIR) bfdincludedir=$(includedir) && \
 	$(INSTALL_DATA) libbfd-${BINUTILS_VERSION}/intl/libintl.a \
@@ -502,12 +518,14 @@ stmp-config-target-gcc: config.status stmp-build-target-binutils
 	 export CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" ; \
 	 export CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" ; \
 	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${GCC_VERSION})/configure \
 	   $(GCC_CONFIG_ARGS)) && \
 	$(STAMP) $@
 build-target-gcc: stmp-build-target-gcc
 stmp-build-target-gcc: stmp-config-target-gcc
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${GCC_VERSION} \
 		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
@@ -516,6 +534,7 @@ stmp-build-target-gcc: stmp-config-target-gcc
 	&& $(STAMP) $@
 install-target-gcc-gcc: stmp-build-target-gcc
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${GCC_VERSION} $(gcc_install_target))
 install-target-gcc: install-target-gcc-gcc $(install-target-gcc-multilibs)
 
@@ -532,11 +551,13 @@ endif
 build-target-minimal-gcc: stmp-build-target-minimal-gcc
 stmp-build-target-minimal-gcc: stmp-config-target-gcc
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${GCC_VERSION} \
 		$(call prefix-list, all-, $(MINIMAL_GCC_BUILD_TARGETS))) && \
 	$(STAMP) $@
 install-target-minimal-gcc: stmp-build-target-minimal-gcc
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${GCC_VERSION} \
 		$(call prefix-list, install-, $(MINIMAL_GCC_BUILD_TARGETS)))
 
@@ -554,14 +575,17 @@ stmp-config-target-newlib: stmp-build-target-binutils \
 	 cd ${NEWLIB_VERSION} ; \
 	 $(TARGET_BINUTILS_EXPORTS) ; \
 	 $(TARGET_MINIMAL_GCC_EXPORTS) ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${NEWLIB_VERSION})/configure \
 	  $(NEWLIB_CONFIG_ARGS)) && \
 	$(STAMP) $@
 stmp-build-target-newlib: stmp-config-target-newlib
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${NEWLIB_VERSION}) && $(STAMP) $@
 install-target-newlib: stmp-build-target-newlib
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${NEWLIB_VERSION} install)
 
 # host gmp rules
@@ -579,11 +603,13 @@ stmp-config-host-gmp: config.status $(canadian_stmp)
 	  mkdir ${GMP_VERSION}) && \
 	($(canadian_env) \
 	 cd ${GMP_VERSION} ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${GMP_VERSION})/configure \
 	  $(GMP_CONFIG_ARGS)) && \
 	$(STAMP) $@
 stmp-build-host-gmp: stmp-config-host-gmp
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${GMP_VERSION}) && $(STAMP) $@
 # This is needed to workaround libtool bug when it generate wrong dependencies in libgmpxx.lai
 stmp-build-host-gmp-workaround: stmp-build-host-gmp
@@ -593,6 +619,7 @@ build-host-gmp: stmp-build-host-gmp stmp-build-host-gmp-workaround
 # Need -j1 to avoid a race condition in building on OS X.
 ifeq ($(HAVE_GMP),no)
 stmp-install-host-gmp: stmp-build-host-gmp stmp-build-host-gmp-workaround
+	$(call log-step,$@) && \
 	$(MAKE) -C ${GMP_VERSION} install -j1 && $(STAMP) $@
 else
 stmp-install-host-gmp:
@@ -610,15 +637,18 @@ stmp-config-host-mpfr: config.status stmp-install-host-gmp
 	  mkdir ${MPFR_VERSION}) && \
 	($(canadian_env) \
 	 cd ${MPFR_VERSION} ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${MPFR_VERSION})/configure \
 	  $(MPFR_CONFIG_ARGS)) && \
 	$(STAMP) $@
 stmp-build-host-mpfr: stmp-config-host-mpfr
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${MPFR_VERSION}) && $(STAMP) $@
 build-host-mpfr: stmp-build-host-mpfr
 ifeq ($(HAVE_MPFR),no)
 stmp-install-host-mpfr: stmp-build-host-mpfr
+	$(call log-step,$@) && \
 	$(MAKE) -C ${MPFR_VERSION} install && $(STAMP) $@
 else
 stmp-install-host-mpfr:
@@ -636,15 +666,18 @@ stmp-config-host-mpc: config.status stmp-install-host-gmp stmp-install-host-mpfr
 	  mkdir ${MPC_VERSION}) && \
 	($(canadian_env) \
 	 cd ${MPC_VERSION} ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${MPC_VERSION})/configure \
 	  $(MPC_CONFIG_ARGS)) && \
 	$(STAMP) $@
 stmp-build-host-mpc: stmp-config-host-mpc
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${MPC_VERSION}) && $(STAMP) $@
 build-host-mpc: stmp-build-host-mpc
 ifeq ($(HAVE_MPC),no)
 stmp-install-host-mpc: stmp-build-host-mpc
+	$(call log-step,$@) && \
 	$(MAKE) -C ${MPC_VERSION} install && $(STAMP) $@
 else
 stmp-install-host-mpc:
@@ -665,16 +698,20 @@ stmp-config-host-ppl: config.status stmp-install-host-gmp
 	 mkdir ${PPL_VERSION}) && \
 	($(canadian_env) \
 	 cd ${PPL_VERSION} ; \
+	$(call log-step,$@) && \
 	$(call find-package-srcdir, ${PPL_VERSION})/configure \
 	 $(PPL_CONFIG_ARGS)) && \
 	$(STAMP) $@
 stmp-build-host-ppl: stmp-config-host-ppl
+	$(call log-step,$@) && \
 	$(MAKE) -C ${PPL_VERSION} && $(STAMP) $@
 # This is needed to workaround libtool bug when it generate wrong dependencies in libppl.lai
 stmp-build-host-ppl-workaround: stmp-build-host-ppl
-	sed -i -e "/dependency_libs/ s/'.*'/''/" `find ${PPL_VERSION} -name '*.lai'` && $(STAMP) $@
+	sed -i -e "/dependency_libs/ s/'.*'/''/" `find ${PPL_VERSION} -name '*.lai'`
+	$(STAMP) $@
 build-host-ppl: stmp-build-host-ppl
 stmp-install-host-ppl: stmp-build-host-ppl stmp-build-host-ppl-workaround
+	$(call log-step,$@) && \
 	$(MAKE) -C ${PPL_VERSION} install && \
 	$(STAMP) $@
 install-host-ppl: stmp-install-host-ppl
@@ -697,15 +734,18 @@ stmp-config-host-cloog: config.status stmp-install-host-gmp
 	 mkdir ${CLOOG_VERSION}) && \
 	($(canadian_env) \
 	 cd ${CLOOG_VERSION} ; \
+	$(call log-step,$@) && \
 	$(call find-package-srcdir, ${CLOOG_VERSION})/configure \
 	 $(CLOOG_CONFIG_ARGS)) && \
 	$(STAMP) $@
 stmp-build-host-cloog: stmp-config-host-cloog
 	# Ignore the generation of cloog utilities
+	$(call log-step,$@) && \
 	$(MAKE) -C ${CLOOG_VERSION} libcloog.la && \
 	$(STAMP) $@
 build-host-cloog: stmp-build-host-cloog
 stmp-install-host-cloog: stmp-build-host-cloog
+	$(call log-step,$@) && \
 	$(MAKE) -C ${CLOOG_VERSION} install-libLTLIBRARIES \
 		install-pkgincludeHEADERS && \
 	$(STAMP) $@
@@ -721,15 +761,18 @@ stmp-config-host-expat: config.status  $(canadian_stmp)
 	  mkdir ${EXPAT_VERSION}) && \
 	($(canadian_env) \
 	 cd ${EXPAT_VERSION} ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${EXPAT_VERSION})/configure \
 	  $(EXPAT_CONFIG_ARGS)) && \
 	$(STAMP) $@
 stmp-build-host-expat: stmp-config-host-expat
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${EXPAT_VERSION}) && $(STAMP) $@
 build-host-expat: stmp_build-host-expat
 ifeq ($(HAVE_EXPAT),no)
 stmp-install-host-expat: stmp-build-host-expat
+	$(call log-step,$@) && \
 	$(MAKE) -C ${EXPAT_VERSION} install -j1 && $(STAMP) $@
 else
 stmp-install-host-expat:
@@ -765,15 +808,18 @@ stmp-config-target-gdb: config.status $(canadian_stmp)
 	  mkdir ${GDB_VERSION}) && \
 	($(canadian_env) \
 	 cd ${GDB_VERSION} ; \
+	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${GDB_VERSION})/configure \
 	  $(GDB_CONFIG_ARGS)) && \
 	$(STAMP) $@
 build-target-gdb: stmp-build-target-gdb
 stmp-build-target-gdb: stmp-config-target-gdb
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${GDB_VERSION}) && $(STAMP) $@
 install-target-gdb: stmp-build-target-gdb
 	($(canadian_env) \
+	 $(call log-step,$@) && \
 	 $(MAKE) -C ${GDB_VERSION} install)
 endif
 
