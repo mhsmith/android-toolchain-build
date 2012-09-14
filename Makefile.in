@@ -280,6 +280,15 @@ install-target-gcc-multilibs :=
 canadian_stmp :=
 endif
 
+# It's workaround which help us find static libstdc++ library regardless of platform we're using.
+# It looks bit ugly but that's the only working way to get it working. Using "-static-libstdc++"
+# works fine on Linux platforms with GNU ld but, unfortunately, doesn't work on Mac OS X Leopard
+# with Apple's GCC and Apple's linker. Maybe that would work on more recent Mac OS X versions
+# but since Leopard is still minimum target, we need find way to workaround that and hack below
+# do it good.
+HOST_LIBSTDCXX := $(foreach lib,libstdc++-static.a libstdc++.a,$(wildcard $(shell $(CC) -print-file-name=$(lib))))
+HOST_LIBSTDCXX += -static-libgcc -lm
+
 ifneq ($(BINUTILS_VERSION), $(GOLD_VERSION))
 build: build-target-gold
 install: install-target-gold
@@ -296,8 +305,7 @@ ifeq ($(ENABLE_GRAPHITE),yes)
 BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} --with-gmp=${GMP_DIR} \
 	--disable-ppl-version-check --disable-cloog-version-check
 # links to the static C++ runtime to avoid depending on the host version
-BINUTILS_CONFIG_ARGS+= \
-	--with-host-libstdcxx="-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm"
+BINUTILS_CONFIG_ARGS+= --with-host-libstdcxx="$(HOST_LIBSTDCXX)"
 stmp-config-target-binutils: install-host-cloog
 endif
 # Enable dual linker support and make gold as default linker when gold is
@@ -438,8 +446,7 @@ ifeq ($(ENABLE_GRAPHITE),yes)
 GCC_CONFIG_ARGS += --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} \
 	--disable-ppl-version-check --disable-cloog-version-check
 # links to the static C++ runtime to avoid depending on the host version
-GCC_CONFIG_ARGS += \
-	--with-host-libstdcxx="-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm"
+GCC_CONFIG_ARGS += --with-host-libstdcxx="$(HOST_LIBSTDCXX)"
 stmp-config-target-gcc: install-host-cloog
 else
 # Disable ppl and cloog just in case the host have them install.
