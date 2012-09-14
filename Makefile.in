@@ -286,7 +286,12 @@ endif
 # with Apple's GCC and Apple's linker. Maybe that would work on more recent Mac OS X versions
 # but since Leopard is still minimum target, we need find way to workaround that and hack below
 # do it good.
-HOST_LIBSTDCXX := $(foreach lib,libstdc++-static.a libstdc++.a,$(wildcard $(shell $(CC) -print-file-name=$(lib))))
+ifneq ($(cur_host),$(cur_build))
+HOST_CC := $(cur_host)-gcc
+else
+HOST_CC := $(CC)
+endif
+HOST_LIBSTDCXX := $(foreach lib,libstdc++-static.a libstdc++.a,$(wildcard $(shell $(HOST_CC) -print-file-name=$(lib))))
 HOST_LIBSTDCXX += -static-libgcc -lm
 
 ifneq ($(BINUTILS_VERSION), $(GOLD_VERSION))
