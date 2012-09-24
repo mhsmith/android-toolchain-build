@@ -427,6 +427,7 @@ install-host-libbfd: stmp-build-host-libbfd install-target-binutils
 # target gcc rules
 .PHONY: config-target-gcc build-target-gcc install-target-gcc
 .PHONY: install-target-gcc-gcc $(install-target-gcc-multilibs)
+.PHONY: build-target-libobjc install-target-libobjc
 config-target-gcc: stmp-config-target-gcc
 
 GCC_CONFIG_ARGS=--prefix=$(prefix) \
@@ -443,6 +444,7 @@ endif
 # For gcc versions 4.5.0 and higher, mpc is required.
 ifeq ($(GCC_MIN_VERSION_4_5_0),yes)
 stmp-config-target-gcc: stmp-install-host-mpc
+stmp-config-target-libobjc: stmp-install-host-mpc
 GCC_CONFIG_ARGS += --with-mpc=$(MPC_DIR)
 endif
 
@@ -467,7 +469,7 @@ ifeq ($(BUILD_ANDROID_GCC),yes)
 GCC_CONFIG_ARGS += $(GCC_CONFIG_LIBSTDCXX_V3) --disable-libssp \
 	--enable-threads --disable-nls --disable-libmudflap --disable-libgomp \
 	--disable-libstdc__-v3 --disable-sjlj-exceptions --disable-shared \
-	--disable-tls --disable-libitm --enable-libobjc
+	--disable-tls --disable-libitm
 
 CFLAGS_FOR_TARGET += -DTARGET_POSIX_IO -fno-short-enums
 
@@ -531,7 +533,7 @@ stmp-config-target-gcc: config.status stmp-build-target-binutils
 	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
 	 $(call log-step,$@) && \
 	 $(call find-package-srcdir, ${GCC_VERSION})/configure \
-	   $(GCC_CONFIG_ARGS)) && \
+	   $(GCC_CONFIG_ARGS) --disable-libobjc) && \
 	$(STAMP) $@
 build-target-gcc: stmp-build-target-gcc
 stmp-build-target-gcc: stmp-config-target-gcc
@@ -548,6 +550,35 @@ install-target-gcc-gcc: stmp-build-target-gcc
 	 $(call log-step,$@) && \
 	 $(MAKE) -C ${GCC_VERSION} $(gcc_install_target))
 install-target-gcc: install-target-gcc-gcc $(install-target-gcc-multilibs)
+
+stmp-config-target-libobjc: config.status stmp-build-target-binutils stmp-install-host-gmp \
+							stmp-install-host-mpfr
+	([ -d ${GCC_VERSION} ] || \
+	  mkdir ${GCC_VERSION}) && \
+	($(canadian_env) \
+	 cd ${GCC_VERSION} ; \
+	 $(TARGET_BINUTILS_EXPORTS) ; \
+	 export CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" ; \
+	 export CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" ; \
+	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
+	 $(call log-step,$@) && \
+	 $(call find-package-srcdir, ${GCC_VERSION})/configure \
+	   $(GCC_CONFIG_ARGS) --enable-libobjc) && \
+	$(STAMP) $@
+build-target-libobjc: stmp-build-target-libobjc
+stmp-build-target-libobjc: stmp-config-target-libobjc
+	($(canadian_env) \
+	 $(call log-step,$@) && \
+	 $(MAKE) -C ${GCC_VERSION} \
+		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+		LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
+		all-target-libobjc) && \
+	$(STAMP) $@
+install-target-libobjc: stmp-build-target-libobjc
+	($(canadian_env) \
+	 $(call log-step,$@) && \
+	 $(MAKE) -C ${GCC_VERSION} install-target-libobjc)
 
 # minimal gcc rules
 # minimal gcc only builds the C and C++ compilers and libgcc
