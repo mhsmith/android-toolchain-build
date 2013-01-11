@@ -58,11 +58,13 @@ INSTALL:=@INSTALL@
 INSTALL_DATA:=@INSTALL_DATA@
 TOPLEVEL_CONFIGURE_ARGUMENTS:=@TOPLEVEL_CONFIGURE_ARGUMENTS@
 baseargs = @baseargs@
+host_baseargs = @host_baseargs@
 GCC_MIN_VERSION_4_3_0:=@GCC_MIN_VERSION_4_3_0@
 GCC_MIN_VERSION_4_5_0:=@GCC_MIN_VERSION_4_5_0@
 GDB_MIN_VERSION_7_2:=@GDB_MIN_VERSION_7_2@
 BINUTILS_MIN_VERSION_2_21:=@BINUTILS_MIN_VERSION_2_21@
 GOLD_MIN_VERSION_2_21:=@GOLD_MIN_VERSION_2_21@
+CLOOG_BACKEND:=@CLOOG_BACKEND@
 ENABLE_GRAPHITE:=@ENABLE_GRAPHITE@
 PACKAGE_TO_SRCDIR:=@package_to_srcdir@
 BUILD_ANDROID_GCC:=@BUILD_ANDROID_GCC@
@@ -305,12 +307,23 @@ config-target-binutils: stmp-config-target-binutils
 # We do not want to enable shared libraries in binutils
 BINUTILS_CONFIG_ARGS=--prefix=$(prefix) \
 	--target=${cur_target} --host=${cur_host} --build=${cur_build} \
-	$(baseargs) --disable-shared
+	$(baseargs) --disable-shared --disable-nls
 ifeq ($(ENABLE_GRAPHITE),yes)
-BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} --with-gmp=${GMP_DIR} \
-	--disable-ppl-version-check --disable-cloog-version-check
+BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-gmp=${GMP_DIR} \
+	--disable-ppl-version-check --disable-cloog-version-check $(CLOOG_BACKEND)
+#BINUTILS_CONFIG_ARGS+= --with-host-libstdcxx="$(HOST_LIBSTDCXX)"
 # links to the static C++ runtime to avoid depending on the host version
-BINUTILS_CONFIG_ARGS+= --with-host-libstdcxx="$(HOST_LIBSTDCXX)"
+ifneq ($(host_os),darwin)
+BINUTILS_CONFIG_ARGS+= \
+	'--with-host-libstdcxx=-static-libgcc \
+	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm' \
+	 --with-gold-ldflags='-static-libgcc -static-libstdc++'
+else
+# In darwin ld doesn't allow both -static and -dynamic.  Instead, we rely on explicit
+# "-isysroot $(mac_sdk_root) -mmacosx-version-min=$(mac_sdk_version)" to establish
+# minimal sdk version toolchain will run
+GCC_CONFIG_ARGS += '--with-host-libstdcxx=-static-libgcc -lstdc++ -lm'
+endif
 stmp-config-target-binutils: install-host-cloog
 endif
 # Enable dual linker support and make gold as default linker when gold is
@@ -328,7 +341,7 @@ BINUTILS_CONFIG_ARGS += --enable-gold=both/ld
 endif
 endif
 endif
-stmp-config-target-binutils: config.status $(canadian_stmp)
+stmp-config-target-binutils: config.status stmp-install-host-ppl $(canadian_stmp)
 	([ -d ${BINUTILS_VERSION} ] || \
 	  mkdir ${BINUTILS_VERSION}) && \
 	($(canadian_env) \
@@ -394,14 +407,14 @@ endif
 config-host-libbfd: stmp-config-host-libbfd
 LIBBFD_CONFIG_ARGS=--prefix=$(prefix) \
 	--target=${target_alias} --host=${host} --build=${build} \
-	$(baseargs) --disable-shared \
-	--enable-install-libbfd --with-included-gettext \
-	CFLAGS="$(CFLAGS) -m32"
+	$(host_baseargs) --disable-shared \
+	--enable-install-libbfd --with-included-gettext
 stmp-config-host-libbfd: config.status
 	([ -d libbfd-${BINUTILS_VERSION} ] || \
 	  mkdir libbfd-${BINUTILS_VERSION}) && \
 	(cd libbfd-${BINUTILS_VERSION} ; \
 	 $(call log-step,$@) && \
+	 export CFLAGS="$(CFLAGS) -m32" ; \
 	 $(call find-package-srcdir, ${BINUTILS_VERSION})/configure \
 	  $(LIBBFD_CONFIG_ARGS)) && \
 	$(STAMP) $@
@@ -451,9 +464,19 @@ endif
 # For gcc 4.5+ with graphite optimization, cloog and ppl are required.
 ifeq ($(ENABLE_GRAPHITE),yes)
 GCC_CONFIG_ARGS += --with-cloog=${CLOOG_DIR} --with-ppl=${PPL_DIR} \
-	--disable-ppl-version-check --disable-cloog-version-check
+	--disable-ppl-version-check --disable-cloog-version-check $(CLOOG_BACKEND)
 # links to the static C++ runtime to avoid depending on the host version
-GCC_CONFIG_ARGS += --with-host-libstdcxx="$(HOST_LIBSTDCXX)"
+#GCC_CONFIG_ARGS += --with-host-libstdcxx="$(HOST_LIBSTDCXX)"
+ifneq ($(host_os),darwin)
+GCC_CONFIG_ARGS += \
+	'--with-host-libstdcxx=-static-libgcc \
+	 -Wl,-Bstatic,-lstdc++,-Bdynamic -lm'
+else
+# In darwin ld doesn't allow both -static and -dynamic.  Instead, we rely on explicit
+# "-isysroot $(mac_sdk_root) -mmacosx-version-min=$(mac_sdk_version)" to establish
+# minimal sdk version toolchain will run
+GCC_CONFIG_ARGS += '--with-host-libstdcxx=-static-libgcc -lstdc++ -lm'
+endif
 stmp-config-target-gcc: install-host-cloog
 else
 # Disable ppl and cloog just in case the host have them install.
@@ -522,7 +545,7 @@ GCC_CONFIG_ARGS += $(ENABLE_GOLD)
 endif
 
 # We have to add -mandroid in target CFLAGS and CXXFLAGS
-stmp-config-target-gcc: config.status stmp-build-target-binutils
+stmp-config-target-gcc: config.status stmp-install-host-ppl stmp-build-target-binutils
 	([ -d ${GCC_VERSION} ] || \
 	  mkdir ${GCC_VERSION}) && \
 	($(canadian_env) \
@@ -633,7 +656,7 @@ install-target-newlib: stmp-build-target-newlib
 # host gmp rules
 .PHONY: config-host-gmp build-host-gmp install-host-gmp
 config-host-gmp: stmp-config-host-gmp
-GMP_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+GMP_CONFIG_ARGS=$(host_baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
 	  --host=${cur_host} --build=${cur_build}
 
 ifeq ($(ENABLE_GRAPHITE),yes)
@@ -671,7 +694,7 @@ install-host-gmp: stmp-install-host-gmp
 # host mpfr rules
 .PHONY: config-host-mpfr build-host-mpfr install-host-mpfr
 config-host-mpfr: stmp-config-host-mpfr
-MPFR_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+MPFR_CONFIG_ARGS=$(host_baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
 	  --host=${cur_host} --build=${cur_build} \
 	  --with-gmp=$(GMP_DIR)
 stmp-config-host-mpfr: config.status stmp-install-host-gmp
@@ -700,7 +723,7 @@ install-host-mpfr: stmp-install-host-mpfr
 # host mpc rules
 .PHONY: config-host-mpc build-host-mpc install-host-mpc
 config-host-mpc: stmp-config-host-mpc
-MPC_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+MPC_CONFIG_ARGS=$(host_baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
 	 --host=${cur_host} --build=${cur_build} \
 	 --with-gmp=$(GMP_DIR) --with-mpfr=$(MPFR_DIR)
 stmp-config-host-mpc: config.status stmp-install-host-gmp stmp-install-host-mpfr
@@ -729,11 +752,11 @@ install-host-mpc: stmp-install-host-mpc
 # host ppl rules
 .PHONY: config-host-ppl build-host-ppl install-host-ppl
 config-host-ppl: stmp-config-host-ppl
-PPL_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+PPL_CONFIG_ARGS=$(host_baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
 	  --target=${target_alias} \
 	  --host=${host} --build=${build} \
-	  --disable-nls --with-gmp-prefix=$(GMP_DIR) \
-	  --enable-watchdog \
+	  --disable-nls \
+	  --disable-watchdog --without-java \
 	  --disable-ppl_lcdd --disable-ppl_lpsol --disable-ppl_pips
 stmp-config-host-ppl: config.status stmp-install-host-gmp
 	([ -d ${PPL_VERSION} ] || \
@@ -741,6 +764,9 @@ stmp-config-host-ppl: config.status stmp-install-host-gmp
 	($(canadian_env) \
 	 cd ${PPL_VERSION} ; \
 	$(call log-step,$@) && \
+         export CFLAGS="${CFLAGS} -I$(GMP_DIR)/include" ; \
+         export CXXFLAGS="${CFLAGS} -I$(GMP_DIR)/include" ; \
+         export LDFLAGS="${LDFLAGS} -L$(GMP_DIR)/lib" ; \
 	$(call find-package-srcdir, ${PPL_VERSION})/configure \
 	 $(PPL_CONFIG_ARGS)) && \
 	$(STAMP) $@
@@ -752,24 +778,40 @@ stmp-build-host-ppl-workaround: stmp-build-host-ppl
 	sed -i -e "/dependency_libs/ s/'.*'/''/" `find ${PPL_VERSION} -name '*.lai'`
 	$(STAMP) $@
 build-host-ppl: stmp-build-host-ppl
+
+ifeq ($(ENABLE_GRAPHITE),yes)
 stmp-install-host-ppl: stmp-build-host-ppl stmp-build-host-ppl-workaround
 	$(call log-step,$@) && \
 	$(MAKE) -C ${PPL_VERSION} install && \
 	$(STAMP) $@
+else
+stmp-install-host-ppl:
+	$(STAMP) $@
+endif
 install-host-ppl: stmp-install-host-ppl
 
 # host cloog rules
 .PHONY: config-host-cloog build-host-cloog install-host-cloog
 config-host-cloog: stmp-config-host-cloog
-CLOOG_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+CLOOG_CONFIG_ARGS=$(host_baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
 	  --target=${target_alias} \
 	  --host=${host} --build=${build} \
-	  --disable-nls \
-	  --with-gmp=$(GMP_DIR)
+	  --disable-nls
 # for cloog-ppl version 0.15.x, ppl is required.
 ifneq ($(findstring ppl-,$(CLOOG_VERSION)),)
-stmp-config-host-cloog: config.status stmp-install-host-ppl
-CLOOG_CONFIG_ARGS+= --with-ppl=$(PPL_DIR)
+CLOOG_TARGET = libcloog.la
+stmp-config-host-cloog: config.status stmp-install-host-ppl \
+	  stmp-install-host-ppl-workaround
+stmp-install-host-ppl-workaround:
+	# cloog 0.15.9 is unable to detect newer versions of ppl.
+	# Thus we modify the version definition in header file to satisfy.
+	sed -i -e 's/PPL_VERSION_MINOR 11/PPL_VERSION_MINOR 10/' \
+	  $(PPL_DIR)/include/ppl_c.h
+	$(STAMP) $@
+CLOOG_CONFIG_ARGS+= --with-gmp=$(GMP_DIR) --with-ppl=$(PPL_DIR)
+else
+CLOOG_TARGET = libcloog-isl.la
+CLOOG_CONFIG_ARGS+= --with-gmp-prefix=$(GMP_DIR)
 endif
 stmp-config-host-cloog: config.status stmp-install-host-gmp
 	([ -d ${CLOOG_VERSION} ] || \
@@ -783,20 +825,24 @@ stmp-config-host-cloog: config.status stmp-install-host-gmp
 stmp-build-host-cloog: stmp-config-host-cloog
 	# Ignore the generation of cloog utilities
 	$(call log-step,$@) && \
-	$(MAKE) -C ${CLOOG_VERSION} libcloog.la && \
+	$(MAKE) -C ${CLOOG_VERSION} $(CLOOG_TARGET) && \
 	$(STAMP) $@
 build-host-cloog: stmp-build-host-cloog
 stmp-install-host-cloog: stmp-build-host-cloog
 	$(call log-step,$@) && \
 	$(MAKE) -C ${CLOOG_VERSION} install-libLTLIBRARIES \
-		install-pkgincludeHEADERS && \
+		install-pkgincludeHEADERS
+ifeq ($(findstring ppl-,$(CLOOG_VERSION)),)
+	$(MAKE) -C ${CLOOG_VERSION}/isl install-libLTLIBRARIES \
+		install-pkgincludeHEADERS
+endif
 	$(STAMP) $@
 install-host-cloog: stmp-install-host-cloog
 
 # host expat rules
 .PHONY: config-host-expat build-host-expat install-host-expat
 config-host-expat: stmp-config-host-expat
-EXPAT_CONFIG_ARGS=$(baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+EXPAT_CONFIG_ARGS=$(host_baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
 	--host=${cur_host} --build=${cur_build}
 stmp-config-host-expat: config.status  $(canadian_stmp)
 	([ -d ${EXPAT_VERSION} ] || \
@@ -830,7 +876,7 @@ install-target-gdb:
 else
 config-target-gdb: stmp-config-target-gdb
 
-GDB_CONFIG_ARGS=$(baseargs) --prefix=$(prefix) \
+GDB_CONFIG_ARGS=$(host_baseargs) --prefix=$(prefix) \
 	--target=$(GDB_TARGET) --host=${cur_host} --build=${cur_build} \
 	--disable-nls --disable-werror
 

@@ -1,4 +1,4 @@
-#   Copyright (C) 2008, 2010, 2011 Google Inc.
+#   Copyright (C) 2008, 2010, 2011, 2013 Google Inc.
 #
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -204,31 +204,35 @@ AC_SUBST(baseargs)
 AC_SUBST(enable_gold)
 AC_SUBST(enable_ld_default)
 
-# Strip --{enable|disable}-{gold|ld}* from baseargs.  These are used for the
-# gold binutils.  Note that baseargs are quoted.
-gold_baseargs=
+# Strip --with-sysroot, which is really "target" sysroot, from baseargs
+# to form host_baseargs for building host libraries.  Passing target
+# --with-sysroot is detrimantal (*1). Invent a new option
+# --with-host-sysroot if needed in the future.
+# Note that baseargs are quoted.
+#
+# (*1) path dependency_libs= in .libs/libgmpxx.lai has '=' prefix!
+#
+host_baseargs=
 for ac_arg in $baseargs
 do
   case $ac_arg in
-  \'--enable-gold\' | \'--enable-gold=*\' | \'--disable-gold\' | \
-   \'--enable-ld\' | \'--enable-ld=*\' | \'--disable-ld\' )
+  \'--with-sysroot=*\' )
     ;;
   *)
-    gold_baseargs="$gold_baseargs $ac_arg"
+    host_baseargs="$host_baseargs $ac_arg"
     ;;
   esac
 done
 
-AC_SUBST(gold_baseargs)
+AC_SUBST(host_baseargs)
 
 AC_MSG_CHECKING([graphite enabled])
 ENABLE_GRAPHITE=no
 AC_ARG_ENABLE([graphite],
               AC_HELP_STRING([--enable-graphite],
                              [Enable Graphite optimization @<:@default=no@:>@]))
-if test x${enableval} = xyes; then
-  graphite=yes
-else
+graphite=yes
+if test x${enableval} != xyes; then
   graphite=no
 fi
 if test "$GCC_MIN_VERSION_4_5_0" == "no"; then
@@ -474,12 +478,14 @@ case $CLOOG_VERSION in
     # CLooG/PPL relies on the PPL for version 0.15.x
     CLOOG_VERSION="ppl-$CLOOG_VERSION"
     ;;
-  0.16*)
-    # CLooG 0.16.x has its own embedded polyhedral library
+  0.16*|0.17*)
+    # CLooG 0.16+ has its own embedded polyhedral library
+    CLOOG_BACKEND="--enable-cloog-backend=isl"
     ;;
   *)
     AC_MSG_ERROR(Unsupported cloog version);
 esac
+AC_SUBST(CLOOG_BACKEND)
 ANDROID_CHECK_PACKAGE(cloog-${CLOOG_VERSION})
 fi
 AC_SUBST(CLOOG_VERSION)
