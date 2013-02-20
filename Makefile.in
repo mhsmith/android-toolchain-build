@@ -194,10 +194,14 @@ endif
 
 # Define environment variables for canadian cross build.
 ifneq ($(cur_host),$(cur_build))
+CFLAGS_FOR_BUILD ?= $(CFLAGS)
+LDFLAGS_FOR_BUILD ?= $(LDFLAGS)
 canadian_build_env := \
 	export CC_FOR_BUILD=$(cur_build)-gcc ; \
 	export CC=$(cur_build)-gcc ; \
-	export CXX=$(cur_build)-g++ ;
+	export CXX=$(cur_build)-g++ ; \
+	export CFLAGS="$(CFLAGS_FOR_BUILD)" ; \
+	export LDFLAGS="$(LDFLAGS_FOR_BUILD)" ;
 
 CANADIAN_ROOT := $(PWD)/host-${cur_build}
 canadian_env := \
@@ -255,7 +259,8 @@ install-canadian-tools: stmp-install-canadian-tools
 stmp-install-canadian-tools: stmp-build-canadian-tools
 	($(canadian_build_env) \
 	 $(call log-step,$@) && \
-	 $(MAKE) -C $(CANADIAN_ROOT) install) && \
+	 cd $(CANADIAN_ROOT) && \
+	 $(MAKE) -j1 install prefix=$(CANADIAN_ROOT)/install) && \
 	$(STAMP) $@
 
 # When building canadian cross toolchain we cannot build GCC target libraries.
@@ -496,32 +501,8 @@ GCC_CONFIG_ARGS += $(GCC_CONFIG_LIBSTDCXX_V3) --disable-libssp \
 
 CFLAGS_FOR_TARGET += -DTARGET_POSIX_IO -fno-short-enums
 
-ifeq ($(target_cpu),x86)
-# Options brought in from core/combo/* for IA
-CFLAGS_FOR_TARGET += \
-	-DANDROID -D__ANDROID__ -Ulinux \
-	-fPIC -Wa,--noexecstack -m32 -fstack-protector \
-	-W -Wall -Werror=address -Werror=format-security -Werror=non-virtual-dtor -Werror=return-type \
-	-Werror=sequence-point -Winit-self -Wno-multichar -Wno-unused -Wpointer-arith -Wstrict-aliasing=2 \
-	-fexceptions -ffunction-sections -finline-functions \
-	-finline-limit=300 -fmessage-length=0 -fno-inline-functions-called-once \
-	-fno-strict-aliasing -frtti \
-	-fstrict-aliasing -funswitch-loops -funwind-tables \
-	-march=i686 -mtune=atom -mbionic -mfpmath=sse -mstackrealign -DUSE_SSE2
-
-LDFLAGS_FOR_TARGET += \
-	-m32 -O2 -g -fPIC \
-	-nostartfiles \
-	-Wl,-z,noexecstack -Wl,--gc-sections -nostdlib \
-	-fexceptions -frtti -fstrict-aliasing -ffunction-sections -finline-functions  \
-	-finline-limit=300 -fno-inline-functions-called-once \
-	-funswitch-loops -funwind-tables -mstackrealign \
-	-ffunction-sections -funwind-tables -fmessage-length=0 \
-	-march=atom -mstackrealign -mfpmath=sse -mbionic \
-	-Wno-multichar -Wl,-z,noexecstack -Werror=format-security -Wstrict-aliasing=2 \
-	-W -Wall -Wno-unused -Winit-self -Wpointer-arith -Werror=return-type -Werror=non-virtual-dtor \
-	-Werror=address -Werror=sequence-point \
-	-Werror=format-security -Wl,--no-undefined
+ifeq ($(target_cpu),i686)
+GCC_CONFIG_ARGS += --with-arch=i686 --with-tune=atom --with-fpmath=sse
 endif
 
 # ARM specific options.
