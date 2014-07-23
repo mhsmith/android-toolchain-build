@@ -68,7 +68,7 @@ BUILD_ANDROID_GCC:=@BUILD_ANDROID_GCC@
 GDB_TARGET:=@GDB_TARGET@
 
 # We need to figure out how to get to top level source directory from
-# a package build directory. 
+# a package build directory.
 # For host modules, accept cache file option, or specification as blank.
 
 
@@ -95,7 +95,6 @@ HAVE_EXPAT=@have_expat@
 ENABLE_GOLD=@enable_gold@
 ENABLE_LD_DEFAULT=@enable_ld_default@
 STAMP=touch
-MAKEFLAGS+=-j$(NUM_JOBS)
 
 TARGET_BINUTILS_BUILDDIR=$(abs_builddir)/$(BINUTILS_VERSION)
 TARGET_GCC_BUILDDIR=$(abs_builddir)/$(GCC_VERSION)
@@ -157,7 +156,7 @@ export	CC_FOR_TARGET="$(TARGET_GCC_BUILDDIR)/gcc/xgcc \
 # We need -Os as the overrides below interfere with --enable-target-optspace.
 # We also need -mandroid for for target libraries to pass linking test
 # in configuration.
-# 
+#
 # To build libstdc++ with RTTI and exceptions do:
 #
 #export CFLAGS_FOR_TARGET=-fexceptions
@@ -304,9 +303,9 @@ config-target-binutils: stmp-config-target-binutils
 # We do not want to enable shared libraries in binutils
 BINUTILS_CONFIG_ARGS=--prefix=$(prefix) \
 	--target=${cur_target} --host=${cur_host} --build=${cur_build} \
-	$(baseargs) --disable-shared --disable-nls
+	$(baseargs) --disable-shared --disable-nls --disable-werror
 ifeq ($(ENABLE_GRAPHITE),yes)
-BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-isl=${ISL_DIR} --with-isl=${ISL_DIR} --with-gmp=${GMP_DIR} \
+BINUTILS_CONFIG_ARGS+= --with-cloog=${CLOOG_DIR} --with-isl=${ISL_DIR} --with-gmp=${GMP_DIR} \
 	--disable-ppl-version-check --disable-cloog-version-check --disable-isl-version-check $(CLOOG_BACKEND)
 # links to the static C++ runtime to avoid depending on the host version
 ifneq ($(host_os),darwin)
@@ -393,11 +392,12 @@ endif
 # target gcc rules
 .PHONY: config-target-gcc build-target-gcc install-target-gcc
 .PHONY: install-target-gcc-gcc $(install-target-gcc-multilibs)
+.PHONY: build-target-libobjc install-target-libobjc
 config-target-gcc: stmp-config-target-gcc
 
 GCC_CONFIG_ARGS=--prefix=$(prefix) \
 	  --target=${cur_target} --host=${cur_host} --build=${cur_build} \
-	  --with-gnu-as --with-gnu-ld --enable-languages=c,c++
+	  --with-gnu-as --with-gnu-ld --enable-languages=c,c++,objc,obj-c++
 
 # For gcc versions 4.3.0 and later, gmp and mpfr are required.
 # Also build libgcc is a seperate sub-target in 4.3.0+.
@@ -409,6 +409,7 @@ endif
 # For gcc versions 4.5.0 and higher, mpc is required.
 ifeq ($(GCC_MIN_VERSION_4_5_0),yes)
 stmp-config-target-gcc: stmp-install-host-mpc
+stmp-config-target-libobjc: stmp-install-host-mpc
 GCC_CONFIG_ARGS += --with-mpc=$(MPC_DIR)
 endif
 
@@ -486,7 +487,7 @@ stmp-config-target-gcc: config.status stmp-install-host-ppl stmp-install-host-is
 	 export CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" ; \
 	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
 	 $(call find-package-srcdir, ${GCC_VERSION})/configure \
-	   $(GCC_CONFIG_ARGS)) && \
+	   $(GCC_CONFIG_ARGS) --disable-libobjc) && \
 	$(STAMP) $@
 build-target-gcc: stmp-build-target-gcc
 stmp-build-target-gcc: stmp-config-target-gcc install-target-binutils
@@ -502,12 +503,37 @@ install-target-gcc-gcc: stmp-build-target-gcc
 	 $(MAKE) -C ${GCC_VERSION} $(gcc_install_target))
 install-target-gcc: install-target-gcc-gcc $(install-target-gcc-multilibs)
 
+stmp-config-target-libobjc: config.status stmp-build-target-binutils stmp-install-host-gmp stmp-install-host-mpfr
+	([ -d ${GCC_VERSION} ] || \
+	  mkdir ${GCC_VERSION}) && \
+	($(canadian_env) \
+	 cd ${GCC_VERSION} ; \
+	 $(TARGET_BINUTILS_EXPORTS) ; \
+	 export CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" ; \
+	 export CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" ; \
+	 export LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" ; \
+	 $(call find-package-srcdir, ${GCC_VERSION})/configure \
+	   $(GCC_CONFIG_ARGS) --enable-libobjc) && \
+	$(STAMP) $@
+build-target-libobjc: stmp-build-target-libobjc
+stmp-build-target-libobjc: stmp-config-target-libobjc
+	($(canadian_env) \
+	 $(MAKE) -C ${GCC_VERSION} \
+		CFLAGS_FOR_TARGET="$(CFLAGS_FOR_TARGET)" \
+		CXXFLAGS_FOR_TARGET="$(CXXFLAGS_FOR_TARGET)" \
+		LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
+		all-target-libobjc) && \
+	$(STAMP) $@
+install-target-libobjc: stmp-build-target-libobjc
+	($(canadian_env) \
+	 $(MAKE) -C ${GCC_VERSION} install-target-libobjc)
+
 # minimal gcc rules
 # minimal gcc only builds the C and C++ compilers and libgcc
 # We use the full gcc configure rules.
 .PHONY: build-target-minimal-gcc install-target-minimal-gcc
 ifeq ("$(GCC_MIN_VERSION_4_3_0)","yes")
-MINIMAL_GCC_BUILD_TARGETS:= gcc target-libgcc 
+MINIMAL_GCC_BUILD_TARGETS:= gcc target-libgcc
 else
 MINIMAL_GCC_BUILD_TARGETS:= gcc
 endif
@@ -787,7 +813,7 @@ config-target-gdb: stmp-config-target-gdb
 
 GDB_CONFIG_ARGS=$(host_baseargs) --prefix=$(prefix) \
 	--target=$(GDB_TARGET) --host=${cur_host} --build=${cur_build} \
-	$(WITH_PYTHON) --disable-nls
+	$(WITH_PYTHON) --disable-nls --disable-werror
 
 # For gdb versions 7.2 and higher, expat is required.
 ifeq ($(GDB_MIN_VERSION_7_2),yes)
