@@ -1,4 +1,4 @@
-#   Copyright (C) 2008, 2010, 2011 Google Inc.
+#   Copyright (C) 2008, 2010, 2011, 2014 Google Inc.
 #
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -452,7 +452,7 @@ fi
 AC_SUBST(MPC_VERSION)
 
 if test "$ENABLE_GRAPHITE" == "yes"; then
-# ppl version (default is 0.11.2)
+# ppl version (default is 1.0_1)
 # ppl is only used for gcc 4.5 and 4.6 with graphite optimization.
 AC_MSG_CHECKING([ppl version])
 AC_ARG_WITH([ppl-version],
@@ -461,7 +461,7 @@ AC_ARG_WITH([ppl-version],
   [if test x"$withval" != x ; then
      PPL_VERSION="$withval"
    fi],
-[PPL_VERSION="0.11.2"])
+[PPL_VERSION="1.0_1"])
 AC_MSG_RESULT($PPL_VERSION)
 ANDROID_CHECK_PACKAGE(ppl-${PPL_VERSION})
 fi
