@@ -59,8 +59,6 @@ GCC_MIN_VERSION_4_3_0:=@GCC_MIN_VERSION_4_3_0@
 GCC_MIN_VERSION_4_5_0:=@GCC_MIN_VERSION_4_5_0@
 GCC_MIN_VERSION_4_8_0:=@GCC_MIN_VERSION_4_8_0@
 GDB_MIN_VERSION_7_2:=@GDB_MIN_VERSION_7_2@
-BINUTILS_MIN_VERSION_2_21:=@BINUTILS_MIN_VERSION_2_21@
-GOLD_MIN_VERSION_2_21:=@GOLD_MIN_VERSION_2_21@
 CLOOG_BACKEND:=@CLOOG_BACKEND@
 ENABLE_GRAPHITE:=@ENABLE_GRAPHITE@
 PACKAGE_TO_SRCDIR:=@package_to_srcdir@
@@ -324,19 +322,9 @@ BINUTILS_CONFIG_ARGS += \
 endif
 endif
 # Enable dual linker support and make gold as default linker when gold is
-# enabled. Notice that our binutils take different --enable-gold=xxx options.
+# enabled.
 ifneq ($(ENABLE_GOLD),)
-ifeq ($(BINUTILS_MIN_VERSION_2_21),yes)
-ifeq ($(ENABLE_LD_DEFAULT),)
 BINUTILS_CONFIG_ARGS += --enable-gold=default
-endif
-else
-ifeq ($(ENABLE_LD_DEFAULT),)
-BINUTILS_CONFIG_ARGS += --enable-gold=both/gold
-else
-BINUTILS_CONFIG_ARGS += --enable-gold=both/ld
-endif
-endif
 endif
 stmp-config-target-binutils: config.status stmp-install-host-ppl stmp-install-host-isl $(canadian_stmp)
 	([ -d ${BINUTILS_VERSION} ] || \
@@ -361,12 +349,7 @@ config-target-gold: stmp-config-target-gold
 # We do not want to enable shared libraries in gold
 GOLD_CONFIG_ARGS=--prefix=$(prefix) \
 	--target=${target_alias} --host=${host} --build=${build} \
-	$(baseargs) --disable-shared
-ifeq ($(GOLD_MIN_VERSION_2_21),yes)
-	GOLD_CONFIG_ARGS += --enable-gold=default
-else
-	GOLD_CONFIG_ARGS += --enable-gold=both/gold
-endif
+	$(baseargs) --disable-shared --enable-gold=default
 stmp-config-target-gold: config.status
 	([ -d ${GOLD_VERSION} ] || \
 	  mkdir ${GOLD_VERSION}) && \
