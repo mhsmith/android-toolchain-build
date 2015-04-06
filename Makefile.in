@@ -327,11 +327,6 @@ BINUTILS_CONFIG_ARGS += \
          --with-gold-ldflags='-static-libgcc -static-libstdc++'
 endif
 endif
-# Enable dual linker support and make gold as default linker when gold is
-# enabled.
-ifneq ($(ENABLE_GOLD),)
-BINUTILS_CONFIG_ARGS += --enable-gold=default
-endif
 stmp-config-target-binutils: config.status stmp-install-host-ppl stmp-install-host-isl $(canadian_stmp)
 	([ -d ${BINUTILS_VERSION} ] || \
 	  mkdir ${BINUTILS_VERSION}) && \
