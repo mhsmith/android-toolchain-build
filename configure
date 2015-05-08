@@ -2623,7 +2623,7 @@ if test "${with_ppl_version+set}" = set; then :
      PPL_VERSION="$withval"
    fi
 else
-  PPL_VERSION="1.0_1"
+  PPL_VERSION="1.1"
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PPL_VERSION" >&5

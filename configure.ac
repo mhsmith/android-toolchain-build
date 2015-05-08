@@ -1,4 +1,4 @@
-#   Copyright (C) 2008, 2010, 2011, 2014 Google Inc.
+#   Copyright (C) 2008, 2010, 2011, 2014, 2015 Google Inc.
 #
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -436,7 +436,7 @@ AC_ARG_WITH([ppl-version],
   [if test x"$withval" != x ; then
      PPL_VERSION="$withval"
    fi],
-[PPL_VERSION="1.0_1"])
+[PPL_VERSION="1.1"])
 AC_MSG_RESULT($PPL_VERSION)
 ANDROID_CHECK_PACKAGE(ppl-${PPL_VERSION})
 fi
