@@ -58,6 +58,8 @@ host_baseargs = @host_baseargs@
 GCC_MIN_VERSION_4_3_0:=@GCC_MIN_VERSION_4_3_0@
 GCC_MIN_VERSION_4_5_0:=@GCC_MIN_VERSION_4_5_0@
 GCC_MIN_VERSION_4_8_0:=@GCC_MIN_VERSION_4_8_0@
+GCC_MIN_VERSION_4_9_0:=@GCC_MIN_VERSION_4_9_0@
+GCC_MIN_VERSION_5_1_0:=@GCC_MIN_VERSION_5_1_0@
 GDB_MIN_VERSION_7_2:=@GDB_MIN_VERSION_7_2@
 CLOOG_BACKEND:=@CLOOG_BACKEND@
 ENABLE_GRAPHITE:=@ENABLE_GRAPHITE@
@@ -327,7 +329,7 @@ BINUTILS_CONFIG_ARGS += \
          --with-gold-ldflags='-static-libgcc -static-libstdc++'
 endif
 endif
-stmp-config-target-binutils: config.status stmp-install-host-ppl stmp-install-host-isl $(canadian_stmp)
+stmp-config-target-binutils: config.status stmp-install-host-ppl stmp-install-host-cloog $(canadian_stmp)
 	([ -d ${BINUTILS_VERSION} ] || \
 	  mkdir ${BINUTILS_VERSION}) && \
 	($(canadian_env) \
@@ -698,7 +700,7 @@ stmp-build-host-isl: stmp-config-host-isl
 	$(MAKE) -C ${ISL_VERSION} && $(STAMP) $@
 build-host-isl: stmp-build-host-isl
 
-ifeq ($(ENABLE_GRAPHITE)$(GCC_MIN_VERSION_4_8_0),yesyes)
+ifeq ($(ENABLE_GRAPHITE)$(GCC_MIN_VERSION_4_8_0)$(GCC_MIN_VERSION_5_1_0),yesyesno)
 stmp-install-host-isl: stmp-build-host-isl
 	$(MAKE) -C ${ISL_VERSION} install && \
 	$(STAMP) $@
