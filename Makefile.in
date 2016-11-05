@@ -574,6 +574,7 @@ install-target-newlib: stmp-build-target-newlib
 .PHONY: config-host-gmp build-host-gmp install-host-gmp
 config-host-gmp: stmp-config-host-gmp
 GMP_CONFIG_ARGS=$(host_baseargs) --prefix=$(TEMP_INSTALLDIR) --disable-shared \
+	  --with-pic \
 	  --host=${cur_host} --build=${cur_build}
 
 ifeq ($(ENABLE_GRAPHITE),yes)
