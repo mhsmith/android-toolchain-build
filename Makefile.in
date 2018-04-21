@@ -428,10 +428,42 @@ endif
 
 # Target indenpendent Android gcc options.
 ifeq ($(BUILD_ANDROID_GCC),yes)
+# Chaquopy: replaced `--disable-shared` with `--enable-shared=libgfortran`. Not simply using
+# `--enable-shared`, because this would also enable a shared libgcc (libgcc_s.so), which has
+# the surprising effect of causing the static libgcc.a to have some things removed from it.
+# These things are moved to a separate file libgcc_eh.a, intended for linking into an
+# executable build, on the basis that they should only exist once per program (see
+# https://gcc.gnu.org/ml/gcc/2012-03/msg00104.html, and LIB2ADDEH in libgcc/Makefile.in). This
+# in turn causes the libcrystax build, which forces a link against a static libgcc, to fail.
+#
+# The things in question are:
+#
+# * "Unwinding" logic for C++ exception handlers.
+#
+# * Thread-local storage emulation (emutls), which is required on Android to work around
+#   limitations in the dynamic linker (https://bugs.llvm.org/show_bug.cgi?id=23566#c4 and
+#   https://stackoverflow.com/a/27195324).
+#
+# We could change libcrystax to link with libgcc_s.so instead, in which case we'd have to
+# include it in the target Python packages and load it in the runtime. However, the fact that
+# even the Google NDK has never included libgcc_s.so implies that using using the static
+# libgcc.a, and thus having a separate copy of these things in each library, is in fact safe as
+# long as the copies are all the same.
+#
+# This is explicitly confirmed by an NDK developer in the case of the unwinder
+# (https://github.com/android-ndk/ndk/issues/289#issuecomment-289170461). I can't find a clear
+# answer for the case of emultls, but I think it's implied by the same developer's statement
+# that the Google NDK's GCC does support this feature (StackOverflow link above),
 GCC_CONFIG_ARGS += $(GCC_CONFIG_LIBSTDCXX_V3) --disable-libssp \
 	--enable-threads --disable-nls --disable-libmudflap --disable-libgomp \
-	--disable-libstdc__-v3 --disable-sjlj-exceptions --disable-shared \
+	--disable-libstdc__-v3 --disable-sjlj-exceptions --enable-shared=libgfortran \
 	--disable-tls --disable-libitm
+
+# Chaquopy: libquadmath isn't available for ARM, so be consistent and disable it on all ABIs.
+# This also prevents the build system from givinf libgfortran a RUNPATH entry pointing at the
+# temporary build directory. RUNPATH is recognized by Android API level 24 and later (#5323),
+# but would probably be harmless since it won't exist anyway.
+GCC_CONFIG_ARGS += --disable-libquadmath --disable-libquadmath-support
 
 CFLAGS_FOR_TARGET += -DTARGET_POSIX_IO -fno-short-enums
 
